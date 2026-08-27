@@ -18,6 +18,8 @@ next-env.d.ts
 
 # Pre-existing marketing workspace (not part of the app)
 scrapling-env/
+the-architect/
+.netlify/
 
 !.env.example
 !.claude/
