@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auditoría Google Ads — Zinzon, Limited Company | soartistic.com</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',system-ui,sans-serif; background:#f8f9fb; color:#1a1a2e; line-height:1.6; padding:32px 16px; }
+    .report { max-width:900px; margin:0 auto; }
+
+    /* HERO */
+    .hero { background:linear-gradient(135deg,#0f0c29,#302b63,#24243e); color:#fff; border-radius:16px; padding:48px 40px; text-align:center; margin-bottom:32px; position:relative; overflow:hidden; }
+    .hero::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle at 30% 40%, rgba(99,102,241,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 60%, rgba(236,72,153,0.1) 0%, transparent 50%); }
+    .hero * { position:relative; z-index:1; }
+    .hero-badge { display:inline-block; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:999px; padding:6px 16px; font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase; margin-bottom:16px; }
+    .hero h1 { font-size:32px; font-weight:800; margin-bottom:8px; }
+    .hero .subtitle { font-size:16px; opacity:0.8; margin-bottom:24px; }
+    .hero .client-info { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; font-size:14px; }
+    .hero .client-info span { background:rgba(255,255,255,0.08); border-radius:8px; padding:8px 16px; }
+
+    /* SCORE */
+    .score-section { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:32px; }
+    .score-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+    .score-card .label { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; margin-bottom:8px; }
+    .score-card .value { font-size:36px; font-weight:800; }
+    .score-card .value.red { color:#ef4444; }
+    .score-card .value.amber { color:#f59e0b; }
+    .score-card .value.green { color:#10b981; }
+    .score-card .desc { font-size:13px; color:#6b7280; margin-top:4px; }
+
+    /* SUMMARY BAR */
+    .summary-bar { background:linear-gradient(90deg,#4f46e5,#7c3aed); border-radius:12px; padding:24px 32px; color:#fff; display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; flex-wrap:wrap; gap:16px; }
+    .summary-bar .left h3 { font-size:18px; font-weight:700; }
+    .summary-bar .left p { font-size:14px; opacity:0.9; }
+    .summary-bar .right { display:flex; gap:24px; }
+    .summary-bar .stat { text-align:center; }
+    .summary-bar .stat .num { font-size:28px; font-weight:800; }
+    .summary-bar .stat .lbl { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; opacity:0.8; }
+
+    /* IMPACT CHART */
+    .chart-section { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; margin-bottom:32px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+    .chart-section h2 { font-size:18px; font-weight:700; margin-bottom:20px; }
+    .chart-bar-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+    .chart-label { width:180px; font-size:12px; font-weight:500; text-align:right; flex-shrink:0; }
+    .chart-track { flex:1; height:28px; background:#f3f4f6; border-radius:6px; position:relative; overflow:hidden; }
+    .chart-fill { height:100%; border-radius:6px; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; font-size:11px; font-weight:700; color:#fff; min-width:40px; transition:width 1.5s ease; }
+    .chart-fill.t1 { background:linear-gradient(90deg,#6366f1,#818cf8); }
+    .chart-fill.t2 { background:linear-gradient(90deg,#8b5cf6,#a78bfa); }
+    .chart-fill.t3 { background:linear-gradient(90deg,#ec4899,#f472b6); }
+    .chart-fill.t4 { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
+    .chart-range { font-size:11px; font-weight:600; color:#6b7280; width:70px; flex-shrink:0; }
+
+    /* TABS */
+    .tabs-nav { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:24px; border-bottom:2px solid #e5e7eb; padding-bottom:0; }
+    .tab-btn { background:none; border:none; padding:10px 16px; font-size:13px; font-weight:600; color:#6b7280; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.2s; border-radius:8px 8px 0 0; }
+    .tab-btn:hover { color:#1a1a2e; background:#f3f4f6; }
+    .tab-btn.active { color:#4f46e5; border-bottom-color:#4f46e5; }
+
+    /* FINDING CARDS */
+    .finding { background:#fff; border:1px solid #e5e7eb; border-radius:12px; margin-bottom:20px; overflow:hidden; display:none; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+    .finding.visible { display:block; }
+    .finding-header { padding:20px 24px; cursor:pointer; display:flex; align-items:center; gap:16px; }
+    .finding-header:hover { background:#f9fafb; }
+    .finding-num { width:36px; height:36px; border-radius:50%; background:#4f46e5; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex-shrink:0; }
+    .finding-title { flex:1; }
+    .finding-title h3 { font-size:15px; font-weight:700; }
+    .finding-title .impact-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:8px; }
+    .finding-title .impact-tag.medium { background:#dcfce7; color:#16a34a; }
+    .finding-title .impact-tag.high { background:#fef3c7; color:#d97706; }
+    .finding-title .impact-tag.critical { background:#fee2e2; color:#dc2626; }
+    .finding-arrow { font-size:18px; color:#6b7280; transition:transform 0.3s; flex-shrink:0; }
+    .finding.open .finding-arrow { transform:rotate(180deg); }
+    .finding-body { display:none; padding:0 24px 24px; }
+    .finding.open .finding-body { display:block; }
+
+    .section-block { margin-bottom:16px; }
+    .section-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#4f46e5; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+    .section-text { font-size:13px; color:#374151; line-height:1.7; }
+    .section-text strong { color:#1a1a2e; }
+
+    .budget-box { background:linear-gradient(135deg,#f0f9ff,#e0f2fe); border:1px solid #bae6fd; border-radius:8px; padding:16px; margin-top:12px; }
+    .budget-box .budget-title { font-size:12px; font-weight:700; color:#0369a1; margin-bottom:6px; }
+    .budget-box .budget-item { font-size:13px; color:#0c4a6e; }
+
+    /* CTA */
+    .cta-section { background:linear-gradient(135deg,#4f46e5,#7c3aed); border-radius:16px; padding:40px; text-align:center; color:#fff; margin-top:32px; }
+    .cta-section h2 { font-size:24px; font-weight:800; margin-bottom:8px; }
+    .cta-section p { font-size:15px; opacity:0.9; margin-bottom:24px; max-width:600px; margin-left:auto; margin-right:auto; }
+    .cta-btn { display:inline-block; background:#fff; color:#4f46e5; padding:14px 32px; border-radius:999px; font-size:15px; font-weight:700; text-decoration:none; cursor:pointer; border:none; transition:transform 0.2s, box-shadow 0.2s; }
+    .cta-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+
+    /* FOOTER */
+    .report-footer { text-align:center; padding:24px; font-size:12px; color:#6b7280; }
+
+    @media(max-width:700px) {
+      body { padding:16px 8px; }
+      .hero { padding:32px 20px; }
+      .hero h1 { font-size:22px; }
+      .score-section { grid-template-columns:1fr; }
+      .summary-bar { flex-direction:column; text-align:center; }
+      .chart-label { width:100px; font-size:11px; }
+      .tabs-nav { gap:2px; }
+      .tab-btn { padding:8px 10px; font-size:11px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="report">
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">Auditoría Completa Google Ads</div>
+    <h1>Zinzon, Limited Company</h1>
+    <div class="subtitle">Auditoría de rendimiento para campañas E-Commerce</div>
+    <div class="client-info">
+      <span>🌐 soartistic.com</span>
+      <span>👤 Guadalupe Valdés Quinza</span>
+      <span>📊 16 hallazgos identificados</span>
+    </div>
+  </div>
+
+  <!-- SCORE CARDS -->
+  <div class="score-section">
+    <div class="score-card">
+      <div class="label">Hallazgos Críticos</div>
+      <div class="value red">6</div>
+      <div class="desc">Requieren acción inmediata</div>
+    </div>
+    <div class="score-card">
+      <div class="label">Oportunidades Altas</div>
+      <div class="value amber">7</div>
+      <div class="desc">Mejora significativa del ROAS</div>
+    </div>
+    <div class="score-card">
+      <div class="label">Optimizaciones</div>
+      <div class="value green">3</div>
+      <div class="desc">Mejora incremental continua</div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-bar">
+    <div class="left">
+      <h3>Potencial de mejora acumulado</h3>
+      <p>Implementando todas las optimizaciones identificadas</p>
+    </div>
+    <div class="right">
+      <div class="stat"><div class="num">+217%</div><div class="lbl">ROAS mínimo</div></div>
+      <div class="stat"><div class="num">+992%</div><div class="lbl">ROAS máximo</div></div>
+    </div>
+  </div>
+
+  <!-- IMPACT CHART -->
+  <div class="chart-section">
+    <h2>📊 Impacto estimado en ROAS por área</h2>
+    <div id="chart-bars"></div>
+  </div>
+
+  <!-- TABS + FINDINGS -->
+  <div class="tabs-nav" id="tabs-nav">
+    <button class="tab-btn active" data-cat="all">Todos (16)</button>
+    <button class="tab-btn" data-cat="tracking">Tracking &amp; Datos</button>
+    <button class="tab-btn" data-cat="strategy">Estrategia &amp; Pujas</button>
+    <button class="tab-btn" data-cat="feed">Feed &amp; Shopping</button>
+    <button class="tab-btn" data-cat="protection">Protección &amp; Control</button>
+  </div>
+  <div id="findings-container"></div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <h2>¿Listo para multiplicar tu ROAS?</h2>
+    <p>Esta auditoría revela oportunidades reales y concretas de mejora. Reserva una sesión explicativa gratuita de 1 hora donde te explicamos cada hallazgo en detalle y resolvemos todas tus dudas.</p>
+    <a class="cta-btn" href="https://funnels.socialxpl.com/auditoria-gratis-gads-ecommerce-304673" target="_blank">📞 Reservar sesión gratuita</a>
+  </div>
+
+  <div class="report-footer">
+    Auditoría realizada por <strong>Mauro Gorrín</strong> — Consultor de Marketing Digital<br>
+    © 2026 · Datos antes que opiniones, resultados antes que vanidad
+  </div>
+</div>
+
+<script>
+const findings = [
+  {
+    num: 1, cat: "tracking", title: "Conversiones Mejoradas", impact: "+5%", level: "medium",
+    problem: "La medición de conversiones se ve limitada por restricciones de privacidad (ITP de Safari, ETP de Firefox, fin de cookies de terceros). Esto genera <strong>infra-atribución de conversiones</strong> y señales incompletas para Smart Bidding, provocando pujas subóptimas y presupuesto desaprovechado.",
+    opportunity: "Enhanced Conversions permite enviar datos first-party cifrados (SHA-256) a Google, mejorando el matching de usuarios, recuperando conversiones perdidas entre dispositivos y optimizando el Smart Bidding con datos más completos y precisos.",
+    action: "Implementar envío de datos hash (email, teléfono, dirección) mediante GTM en la página de confirmación de compra. Configurar Data Layer con campos de cliente. Actualizar política de privacidad.",
+    budget: "Implementación: 75€"
+  },
+  {
+    num: 2, cat: "tracking", title: "Listas de Clientes (Customer Match)", impact: "+5,3%", level: "medium",
+    problem: "Las campañas carecen de audiencias first-party, limitando la segmentación avanzada. Esto causa <strong>segmentación subóptima</strong>, menor personalización, dependencia de cookies de terceros y oportunidades de retargeting desperdiciadas.",
+    opportunity: "Customer Match permite subir listas de datos propios para segmentar en Search, Shopping, YouTube y Performance Max. Esto potencia estrategias de fidelización, reactivación de clientes inactivos y optimización de pujas por valor de cliente.",
+    action: "Integrar CRM con Google Ads (vía API o Zapier). Sincronizar datos de LTV, frecuencia de compra y recencia. Crear segmentos RFM para campañas diferenciadas.",
+    budget: "Implementación: 150€ · Sincronización: 30€/mes"
+  },
+  {
+    num: 3, cat: "tracking", title: "Pasarela de Datos (Data Layer)", impact: "+11%", level: "high",
+    problem: "No hay Data Layer implementado correctamente. Los datos de conversión son incompletos, las audiencias están limitadas, el Smart Bidding opera con visión parcial y <strong>es imposible implementar funcionalidades avanzadas</strong> como Enhanced Conversions o Consent Mode.",
+    opportunity: "La implementación correcta del GTag y Data Layer permite mayor control de datos first-party, mejor recuperación de señales y un aumento del 11% en señales de medición recogidas según datos internos de Google.",
+    action: "Migrar a una implementación completa de pasarela de datos con eventos de e-commerce (view_item, add_to_cart, begin_checkout, purchase) correctamente configurados en GTM.",
+    budget: "Implementación: 250€"
+  },
+  {
+    num: 4, cat: "strategy", title: "IA Max / Optimización de Recursos", impact: "+11% a +27%", level: "high",
+    problem: "No se está utilizando IA Max en campañas de Búsqueda ni la optimización completa de recursos en Performance Max, <strong>limitando el alcance del algoritmo</strong> y perdiendo oportunidades de conversión en búsquedas de cola larga.",
+    opportunity: "IA Max mejora la segmentación con optimización inteligente de términos de búsqueda, personalización dinámica de textos y expansión de URL final para dirigir al usuario a la página más relevante.",
+    action: "Activar IA Max en campañas de búsqueda. Optimizar grupos de recursos en PMax con señales de audiencia precisas, creatividades variadas y medición de conversiones correcta.",
+    budget: "Implementación: 25€ por campaña activa"
+  },
+  {
+    num: 5, cat: "strategy", title: "Estrategia de Puja", impact: "+15% a +30%", level: "high",
+    problem: "Estrategia de puja automática <strong>mal configurada y desalineada</strong> con los objetivos financieros. tCPA/tROAS incorrectos, uso inadecuado de Maximizar Clics/Conversiones sin límites, y estrategia estática sin adaptación a estacionalidad.",
+    opportunity: "Transicionar a Value-Based Bidding con tROAS basado en margen real, segmentación por valor de producto y CLV del cliente, y ajustes dinámicos por audiencia, ubicación y dispositivo.",
+    action: "Auditoría exhaustiva de estrategias actuales. Redefinir KPIs alineados con margen de beneficio. Migración controlada a tROAS con datos de valor de carrito dinámico.",
+    budget: "Implementación: 25€ por campaña"
+  },
+  {
+    num: 6, cat: "strategy", title: "Performance Max (PMax)", impact: "+10%", level: "medium",
+    problem: "Configuración deficiente: recursos de baja calidad/variedad, señales de audiencia genéricas, <strong>estrategia de puja no optimizada</strong>, objetivos de conversión mal definidos y falta de exclusiones de marca.",
+    opportunity: "Reestructurar PMax con Asset Groups temáticos, señales de audiencia de alto valor (Customer Match + carritos abandonados), Listing Groups por margen de beneficio y exclusiones estratégicas.",
+    action: "Reestructurar campañas PMax por objetivos de negocio. Crear creatividades multi-formato (imagen, texto, vídeo). Implementar tROAS por categoría de producto.",
+    budget: "Optimizar existentes: 50€ · Nuevas campañas: 150€ · (Sin incluir diseño creativo)"
+  },
+  {
+    num: 7, cat: "feed", title: "Feed de Datos de Producto", impact: "+20% a +450%", level: "critical",
+    problem: "Feed con títulos mal optimizados, atributos clave faltantes (GTIN, MPN, marca), categorización errónea y <strong>baja calidad general</strong> (descripciones vagas, imágenes de baja resolución, precios desactualizados).",
+    opportunity: "Optimización semántica de títulos con palabras clave de cola larga, validación de GTIN/MPN, etiquetas personalizadas por margen de beneficio, rotación de stock y rango de precios. A/B testing continuo de títulos e imágenes.",
+    action: "Implementar herramienta de gestión de feed (DataFeedWatch). Optimizar títulos con estructura Marca + Tipo + Atributo. Configurar custom_labels por margen, estacionalidad y rendimiento.",
+    budget: "Implementación (1 feed): 300€ · Herramienta: 70€/mes"
+  },
+  {
+    num: 8, cat: "tracking", title: "Server Side Tracking", impact: "+40% a +50%", level: "critical",
+    problem: "<strong>Ausencia total de Server-Side Tracking.</strong> Dependencia exclusiva del client-side, vulnerable a ad blockers, restricciones de navegadores (ITP/ETP), actualizaciones de privacidad móvil (iOS ATT) y pérdida masiva de datos de conversión.",
+    opportunity: "GTM Server-Side envía datos directamente desde el servidor, eludiendo bloqueadores, mejorando la velocidad del sitio, preparando para el fin de cookies de terceros y permitiendo enriquecer datos con información de back-end.",
+    action: "Configurar contenedor Server-Side en GTM con hosting en Google App Engine. Configurar dominio propio (gtm.soartistic.com). Migrar eventos clave de e-commerce. Validación exhaustiva.",
+    budget: "Implementación: 250€+ · Herramienta (Stape): 20-50€/mes"
+  },
+  {
+    num: 9, cat: "tracking", title: "Consent Mode v2", impact: "+10% a +50%", level: "critical",
+    problem: "<strong>Consent Mode ausente o mal implementado.</strong> Riesgo de bloqueo completo de medición por Google. Incumplimiento de GDPR/CCPA. Pérdida de datos de conversión y audiencias de remarketing.",
+    opportunity: "Consent Mode v2 actúa como puente de datos, mantiene el bidding eficiente con señales legales, permite modelado de conversiones para recuperar datos perdidos y ofrece granularidad con parámetros ad_user_data y ad_personalization.",
+    action: "Implementar Consent Mode v2 con CMP (CookieBot). Configurar los 4 parámetros obligatorios: ad_storage, analytics_storage, ad_user_data, personalization. Validar con Tag Assistant.",
+    budget: "Implementación: 150€ · CMP (CookieBot): 20€/mes"
+  },
+  {
+    num: 10, cat: "strategy", title: "Estructura de la Cuenta", impact: "+20% a +30%", level: "high",
+    problem: "Estructura deficiente — ya sea <strong>demasiado segmentada</strong> (fragmenta datos, impide aprendizaje del algoritmo) o <strong>sin segmentación</strong> (mezcla objetivos, confunde el algoritmo, ineficiencia en el embudo de ventas).",
+    opportunity: "Reorganización lógica por categorías de producto, margen de beneficio y niveles de rendimiento (Tier 1/2/3). Esto permite presupuestos diferenciados, pujas inteligentes y consolidación de volumen en productos estrella.",
+    action: "Rediseño completo basado en datos históricos de 6-12 meses. Estructura orientada a objetivos con campañas separadas por rol en el embudo. Listas de negativas refinadas.",
+    budget: "Reestructuración: 100€ por cada 1.000€ de inversión (máx. 600€)"
+  },
+  {
+    num: 11, cat: "feed", title: "CSS (Comparison Shopping Service)", impact: "+25%", level: "high",
+    problem: "El CSS actual puede tener un <strong>margen elevado que infla el CPC</strong>, reduciendo la eficiencia de la inversión en Google Shopping. Un CPC artificialmente inflado disminuye el ROAS real.",
+    opportunity: "Migrar a un CSS Partner certificado para obtener un descuento estructural del 20% en CPC. El mecanismo surge de regulaciones antimonopolio de la UE que obligan a Google a permitir competencia.",
+    action: "Seleccionar CSS Partner certificado. Vincular Merchant Center. Migrar campañas de Shopping y PMax. Monitorear aplicación correcta del descuento del 20% en CPC.",
+    budget: "Implementación: 150€ · Herramienta (ProductHero): 40€/mes"
+  },
+  {
+    num: 12, cat: "tracking", title: "Conversiones Offline", impact: "+30% a +70%", level: "critical",
+    problem: "<strong>Sin configuración de conversiones offline.</strong> El algoritmo opera con visión parcial: no ve devoluciones, ventas telefónicas, compras recurrentes ni el LTV real. El ROAS reportado no refleja la realidad del negocio.",
+    opportunity: "Importar devoluciones para optimizar hacia margen neto real. Atribuir ventas telefónicas y recurrentes. Entrenar al algoritmo para buscar perfiles de compra saludables, no caza-ofertas que devuelven todo.",
+    action: "Integrar CRM con Google Ads vía GCLID. Configurar Enhanced Conversions for Leads con hashing seguro. Automatizar subida con Make (Integromat).",
+    budget: "Implementación: 300€ · Automatización (Make): 20€/mes"
+  },
+  {
+    num: 13, cat: "protection", title: "Click Fraud (Fraude de Clics)", impact: "+10% a +40%", level: "high",
+    problem: "Sin protección contra tráfico inválido: bots, click farms, competidores y clics accidentales que <strong>drenan presupuesto sin generar conversiones</strong>. Infla artificialmente el CPA y subestima el ROAS.",
+    opportunity: "Herramientas anti-fraude (ClickCease, PPC Protect) identifican y bloquean automáticamente IPs sospechosas, mejoran la calidad de datos analíticos y permiten exclusión proactiva de audiencias fraudulentas.",
+    action: "Implementar herramienta anti-fraude. Configurar exclusiones de IP, ubicaciones geográficas, audiencias de bajo valor y keywords de rendimiento pobre.",
+    budget: "Implementación: 50€ · Herramienta: 50-250€/mes según clics"
+  },
+  {
+    num: 14, cat: "protection", title: "Keywords Negativas", impact: "+5% a +40%", level: "high",
+    problem: "Gestión semántica deficiente: identificación inicial incompleta, <strong>falta de mantenimiento continuo</strong> y uso incorrecto de tipos de concordancia negativa. Los anuncios aparecen en búsquedas irrelevantes drenando presupuesto.",
+    opportunity: "Refinar el matching con listas de negativas elimina gasto innecesario, mejora CTR y Quality Score, y aumenta la tasa de conversión al filtrar tráfico irrelevante.",
+    action: "Auditoría completa de términos de búsqueda. Crear listas temáticas (genéricas, marcas no vendidas, informacionales). Aplicar a nivel de cuenta, campaña y grupo de anuncios. Revisión semanal.",
+    budget: "Implementación: 50€ por cada 1.000€ de inversión (máx. 150€)"
+  },
+  {
+    num: 15, cat: "feed", title: "Scripts de Etiquetado Dinámico", impact: "+15% a +50%", level: "critical",
+    problem: "Sin segmentación dinámica del catálogo. Todos los productos compiten por el mismo presupuesto: los de bajo rendimiento <strong>canibalizan recursos de los productos estrella</strong>, diluyendo el ROAS global.",
+    opportunity: "Scripts automáticos que etiquetan productos por ROAS, margen, stock y estacionalidad. Permite pujas diferenciadas: agresivas para productos rentables, conservadoras para bajo rendimiento.",
+    action: "Implementar script Labelizer para clasificar productos por ROAS/POAS. Reestructurar campañas con segmentación por etiquetas personalizadas.",
+    budget: "Script Labelizer: 50€ · Reestructuración: 100€ por línea de producto"
+  },
+  {
+    num: 16, cat: "strategy", title: "Puja por POAS (Profit on Ad Spend)", impact: "+20% a +130%", level: "critical",
+    problem: "Las campañas optimizan por <strong>ingreso bruto, no por beneficio neto</strong>. Un producto con ROAS 500% y margen 10% da pérdidas, mientras otro con ROAS 400% y margen 50% es muy rentable. La métrica actual es engañosa.",
+    opportunity: "Implementar ProfitMetrics para calcular el beneficio neto real (COGS, envío, devoluciones, comisiones). Transformar Google Ads de un canal de ingresos a un motor de rentabilidad centrado en el margen real.",
+    action: "Configurar ProfitMetrics con datos de COGS, gastos logísticos, fulfillment y gastos fijos. Migrar estrategia de puja de ROAS a POAS. Incluye medición server-side.",
+    budget: "Configuración: 450€ (incluye sesión de 1h) · Herramienta: según volumen de ventas"
+  }
+];
+
+// Chart
+const chartData = [
+  { label: "Feed de datos", min: 20, max: 450, cls: "t3" },
+  { label: "Puja POAS", min: 20, max: 130, cls: "t3" },
+  { label: "Conversiones offline", min: 30, max: 70, cls: "t3" },
+  { label: "Consent Mode", min: 10, max: 50, cls: "t2" },
+  { label: "Server Side Tracking", min: 40, max: 50, cls: "t2" },
+  { label: "Click Fraud", min: 10, max: 40, cls: "t2" },
+  { label: "Keywords negativas", min: 5, max: 40, cls: "t2" },
+  { label: "Scripts etiquetado", min: 15, max: 50, cls: "t1" },
+  { label: "Estructura cuenta", min: 20, max: 30, cls: "t1" },
+  { label: "Estrategia puja", min: 15, max: 30, cls: "t1" },
+  { label: "CSS Shopping", min: 25, max: 25, cls: "t1" },
+  { label: "IA Max", min: 11, max: 27, cls: "t1" },
+  { label: "Pasarela datos", min: 11, max: 11, cls: "t4" },
+  { label: "PMax", min: 10, max: 10, cls: "t4" },
+  { label: "Listas clientes", min: 5.3, max: 5.3, cls: "t4" },
+  { label: "Conv. mejoradas", min: 5, max: 5, cls: "t4" },
+];
+
+const chartEl = document.getElementById('chart-bars');
+const maxVal = 100;
+chartData.forEach(d => {
+  const pct = Math.min(d.max, maxVal) / maxVal * 100;
+  const rangeText = d.min === d.max ? `+${d.min}%` : `+${d.min}%-${d.max}%`;
+  chartEl.innerHTML += `<div class="chart-bar-row">
+    <div class="chart-label">${d.label}</div>
+    <div class="chart-track"><div class="chart-fill ${d.cls}" style="width:${pct}%">${d.max > 15 ? rangeText : ''}</div></div>
+    <div class="chart-range">${rangeText}</div>
+  </div>`;
+});
+
+// Findings
+const container = document.getElementById('findings-container');
+findings.forEach(f => {
+  container.innerHTML += `<div class="finding visible" data-cat="${f.cat}" id="f${f.num}">
+    <div class="finding-header" onclick="toggleFinding(${f.num})">
+      <div class="finding-num">${f.num}</div>
+      <div class="finding-title">
+        <h3>${f.title} <span class="impact-tag ${f.level}">${f.level === 'critical' ? 'Crítico' : f.level === 'high' ? 'Alto' : 'Medio'} · ROAS ${f.impact}</span></h3>
+      </div>
+      <div class="finding-arrow">▼</div>
+    </div>
+    <div class="finding-body">
+      <div class="section-block">
+        <div class="section-label">🔍 Problema detectado</div>
+        <div class="section-text">${f.problem}</div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">💡 Oportunidad de mejora</div>
+        <div class="section-text">${f.opportunity}</div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">⚡ Acción recomendada</div>
+        <div class="section-text">${f.action}</div>
+      </div>
+      <div class="budget-box">
+        <div class="budget-title">💰 Inversión requerida</div>
+        <div class="budget-item">${f.budget}</div>
+      </div>
+    </div>
+  </div>`;
+});
+
+function toggleFinding(num) {
+  document.getElementById('f'+num).classList.toggle('open');
+}
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const cat = btn.dataset.cat;
+    document.querySelectorAll('.finding').forEach(f => {
+      f.classList.toggle('visible', cat === 'all' || f.dataset.cat === cat);
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ruta Teatral — Teatro Que Nos Une</title>
+  <meta name="description" content="Ruta Teatral promueve el teatro en español, la educación y la comunidad a través de programas innovadores en South Florida." />
+  <meta property="og:title" content="Ruta Teatral" />
+  <meta property="og:description" content="Teatro que nos une. La organización de teatro en español más importante de South Florida." />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Montserrat', sans-serif; background: #0D0D0D; color: #fff; overflow-x: hidden; }
+
+    :root {
+      --burgundy: #8C1D40;
+      --yellow: #F2B705;
+      --gold: #F2C94C;
+      --black: #0D0D0D;
+      --dark: #111111;
+      --card: #191919;
+    }
+
+    .anton { font-family: 'Anton', sans-serif; }
+
+    .btn-yellow {
+      background: var(--yellow); color: var(--black);
+      font-family: 'Anton', sans-serif; font-size: 0.78rem; letter-spacing: 0.08em;
+      padding: 0.85rem 1.8rem; border: none; cursor: pointer; display: inline-block;
+      text-decoration: none; transition: background 0.2s, transform 0.2s;
+      text-transform: uppercase;
+    }
+    .btn-yellow:hover { background: var(--gold); transform: translateY(-2px); }
+
+    .btn-outline {
+      background: transparent; color: var(--yellow);
+      border: 2px solid var(--yellow);
+      font-family: 'Anton', sans-serif; font-size: 0.78rem; letter-spacing: 0.08em;
+      padding: 0.83rem 1.8rem; cursor: pointer; display: inline-block;
+      text-decoration: none; transition: all 0.2s; text-transform: uppercase;
+    }
+    .btn-outline:hover { background: var(--yellow); color: var(--black); }
+
+    .btn-ghost {
+      background: transparent; color: #fff;
+      border: 2px solid rgba(255,255,255,0.35);
+      font-family: 'Anton', sans-serif; font-size: 0.78rem; letter-spacing: 0.08em;
+      padding: 0.83rem 1.8rem; cursor: pointer; display: inline-block;
+      text-decoration: none; transition: all 0.2s; text-transform: uppercase;
+    }
+    .btn-ghost:hover { border-color: #fff; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #1a1a1a; }
+    ::-webkit-scrollbar-thumb { background: var(--burgundy); border-radius: 2px; }
+
+    .dot-pattern {
+      background-image: radial-gradient(rgba(242,183,5,0.06) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    .card { transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px rgba(0,0,0,0.5); }
+
+    .label {
+      font-family: 'Montserrat', sans-serif; font-weight: 700;
+      font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--burgundy);
+    }
+    .section-title { font-family: 'Anton', sans-serif; text-transform: uppercase; color: #fff; line-height: 1; }
+
+    /* ── HERO ANIMATIONS ── */
+    @keyframes kenBurns {
+      0%   { transform: scale(1.0) translate(0%, 0%); }
+      100% { transform: scale(1.18) translate(-3%, 2%); }
+    }
+    @keyframes revealUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes revealLeft {
+      from { opacity: 0; transform: translateX(-40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes posterIn {
+      from { opacity: 0; transform: perspective(900px) rotateY(-20deg) translateX(60px) scale(0.9); }
+      to   { opacity: 1; transform: perspective(900px) rotateY(-8deg) translateX(0) scale(1); }
+    }
+    @keyframes tagIn {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes bounceIn {
+      0%  { transform: scale(0); opacity: 0; }
+      80% { transform: scale(1.08); }
+      100%{ transform: scale(1); opacity: 1; }
+    }
+
+    .reveal-up { animation: revealUp 0.65s ease both; }
+    .reveal-left { animation: revealLeft 0.65s ease both; }
+    .d0 { animation-delay: 0s; }
+    .d1 { animation-delay: 0.12s; }
+    .d2 { animation-delay: 0.26s; }
+    .d3 { animation-delay: 0.42s; }
+    .d4 { animation-delay: 0.58s; }
+
+    .line-accent::before {
+      content: '';
+      display: block; width: 48px; height: 3px;
+      background: var(--burgundy); margin-bottom: 1rem;
+    }
+
+    .img-overlay { position: relative; overflow: hidden; }
+    .img-overlay img { transition: transform 0.5s ease; }
+    .img-overlay:hover img { transform: scale(1.06); }
+    .img-overlay .overlay {
+      position: absolute; inset: 0;
+      background: rgba(140,29,64,0.78);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+    .img-overlay:hover .overlay { opacity: 1; }
+
+    .tag-pill {
+      display: inline-block; background: var(--burgundy);
+      font-family: 'Montserrat', sans-serif; font-weight: 700;
+      font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: #fff; padding: 0.3rem 0.8rem;
+    }
+
+    .sticky-ticket { animation: bounceIn 0.4s ease both; }
+
+    .footer-link {
+      font-family: 'Montserrat', sans-serif; font-size: 0.75rem;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.2s;
+    }
+    .footer-link:hover { color: var(--yellow); }
+
+    .nav-link {
+      font-family: 'Montserrat', sans-serif; font-weight: 600;
+      font-size: 0.70rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(255,255,255,0.85); text-decoration: none;
+      transition: color 0.2s; padding: 0.3rem 0; position: relative;
+    }
+    .nav-link::after {
+      content: ''; position: absolute; bottom: 0; left: 0;
+      width: 0; height: 2px; background: var(--yellow); transition: width 0.25s;
+    }
+    .nav-link:hover { color: #fff; }
+    .nav-link:hover::after { width: 100%; }
+
+    .social-icon {
+      width: 44px; height: 44px; background: #222;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.6); text-decoration: none; transition: all 0.2s;
+    }
+    .social-icon:hover { background: var(--burgundy); color: var(--yellow); }
+
+    .program-card {
+      background: var(--card); padding: 2rem;
+      position: relative; overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .program-card::before {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 4px; height: 100%; background: var(--burgundy);
+      transition: background 0.3s;
+    }
+    .program-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(140,29,64,0.2); }
+    .program-card:hover::before { background: var(--yellow); }
+
+    .form-input {
+      flex: 1; padding: 1rem 1.4rem;
+      background: rgba(0,0,0,0.35); border: 1px solid rgba(242,183,5,0.35);
+      color: #fff; font-family: 'Montserrat', sans-serif; font-size: 0.9rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    .form-input::placeholder { color: rgba(255,255,255,0.35); }
+    .form-input:focus { border-color: var(--yellow); }
+
+    /* Lang toggle */
+    .lang-toggle { display: flex; overflow: hidden; border: 1px solid rgba(242,183,5,0.4); }
+    .lang-btn {
+      padding: 0.28rem 0.7rem;
+      font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.62rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      border: none; cursor: pointer; transition: all 0.2s;
+    }
+    .lang-active { background: var(--yellow); color: #0D0D0D; }
+    .lang-inactive { background: transparent; color: rgba(255,255,255,0.5); }
+
+    /* Poster frame glow */
+    .poster-frame {
+      position: relative;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.85), 0 0 0 1px rgba(242,183,5,0.3), 6px 6px 0 rgba(140,29,64,0.6);
+    }
+    .poster-frame::after {
+      content: ''; position: absolute; inset: -1px;
+      border: 1px solid rgba(242,183,5,0.25); pointer-events: none;
+    }
+
+    @media (max-width: 1024px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+      .grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+      .about-grid { grid-template-columns: 1fr !important; }
+      .about-img-col { display: none !important; }
+      .hero-poster-col { display: none !important; }
+      .footer-nav-grid { grid-template-columns: repeat(2,1fr) !important; }
+    }
+    @media (max-width: 1024px) {
+      .blog-detail-grid { grid-template-columns: 1fr !important; }
+      .blog-sidebar { position: static !important; top: auto !important; }
+    }
+    @media (max-width: 768px) {
+      .desktop-nav { display: none !important; }
+      .mobile-btn { display: flex !important; }
+      .grid-3 { grid-template-columns: 1fr !important; }
+      .grid-4 { grid-template-columns: 1fr !important; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .insta-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .footer-bottom { flex-direction: column !important; text-align: center; }
+      .footer-grid { grid-template-columns: 1fr !important; }
+      .form-row { flex-direction: column !important; }
+      .footer-nav-grid { grid-template-columns: repeat(2,1fr) !important; }
+      .blog-detail-grid { grid-template-columns: 1fr !important; }
+      .blog-sidebar { position: static !important; top: auto !important; }
+      .blog-featured { grid-template-columns: 1fr !important; }
+      .blog-featured-img { height: 260px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+    const { createRoot } = ReactDOM;
+
+    // Simple SVG Icons
+    const Menu = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>;
+    const X = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+    const ChevronLeft = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>;
+    const ChevronRight = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>;
+    const MapPin = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>;
+    const Phone = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>;
+    const Globe = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>;
+    const Instagram = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor"/></svg>;
+    const Facebook = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h7v-7h-2v-2.5h2v-2c0-2.1 1.3-3.3 3.2-3.3.6 0 1.4.1 1.4.1v1.6h-1c-.8 0-1 .4-1 .9v1.7h2l-.3 2.5h-1.7v7h3.5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>;
+    const Youtube = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2c-.3-1.3-1.4-2.3-2.7-2.5C18.8 3 12 3 12 3s-6.8 0-8.8.7c-1.3.3-2.4 1.2-2.7 2.5C0 8.2 0 12 0 12s0 3.8.3 5.8c.3 1.3 1.4 2.3 2.7 2.5 2 .7 8.8.7 8.8.7s6.8 0 8.8-.7c1.3-.3 2.4-1.2 2.7-2.5.3-2 .3-5.8.3-5.8s0-3.8-.3-5.8zM9.5 15.5v-7l6 3.5-6 3.5z"/></svg>;
+    const ArrowRight = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>;
+    const BookOpen = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
+    const Heart = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>;
+    const Star = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>;
+    const Calendar = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
+    const User = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>;
+    const Music = (props) => <svg width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="currentColor"><path d="M9 18v-5h2v5H9zm4-3v3h2v-3h-2zm4-4v7h2v-7h-2zM5 5h14v2H5V5z"/></svg>;
+
+    /* ── ASSETS ── */
+    const LOGO        = 'https://rutateatral.com/wp-content/uploads/2026/01/Logo-Ruta-Principal-Amarillo1.svg';
+    const IMG_NOEREST = 'https://rutateatral.com/wp-content/uploads/2026/04/NOEREST_IG_Post_1080x1350.jpg';
+    const IMG_TOCTOC  = 'https://rutateatral.com/wp-content/uploads/2026/04/Toc-Toc-IG-Post-21-de-abril-1.png';
+    const IMG_CUCAR   = 'https://rutateatral.com/wp-content/uploads/2026/04/Cucarachita-IG-Post.png';
+
+    const SLIDE_DURATION = 7000;
+
+    /* ── TRANSLATIONS ── */
+    const TR = {
+      es: {
+        nav: ['Nosotros', 'Obras', 'Programas', 'Eventos', 'Blog', 'Audiciones', 'Comunidad', 'Contacto'],
+        cta: '🎟 Entradas',
+        slides: [
+          {
+            tag: 'Sáb. 23 de Mayo | 8PM · Teatro Tower, Miami',
+            cat: 'Stand-Up Comedy',
+            title: 'NO ERES TÚ\n¡SOY YO!',
+            sub: 'Luis Fernández en una noche de comedia íntima e irresistible que no te puedes perder.',
+            cta1: 'Comprar Entradas', cta2: 'Ver Detalles',
+            poster: IMG_NOEREST,
+            bg: 'https://images.unsplash.com/photo-1516307365426-bea591f05011?w=1600&q=80',
+          },
+          {
+            tag: 'Única Función · 2 de Mayo | 8PM · Boca Raton',
+            cat: 'Comedia',
+            title: 'TOC\nTOC',
+            sub: 'La comedia más trastornada regresa. Countess de Hoernle Theatre, Boca Raton.',
+            cta1: 'Comprar Entradas', cta2: 'Ver Programa',
+            poster: IMG_TOCTOC,
+            bg: 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=1600&q=80',
+          },
+          {
+            tag: 'Dom. 3 de Mayo | 11AM · ¡Entrada gratuita!',
+            cat: 'Teatro Infantil · Ruta Kids',
+            title: 'LA CUCARACHITA\nMARTINA',
+            sub: 'Un espectáculo familiar gratuito, presentado por Ruta Kids y Coral Gables.',
+            cta1: 'Reservar Gratis', cta2: 'Ver Programa',
+            poster: IMG_CUCAR,
+            bg: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1600&q=80',
+          },
+        ],
+        stats: [
+          { v: '10+', l: 'Años de Teatro' },
+          { v: '50+', l: 'Producciones' },
+          { v: '20K+', l: 'Espectadores' },
+          { v: '4', l: 'Programas' },
+        ],
+        about: {
+          label: 'Sobre Ruta Teatral',
+          title: 'CONECTANDO\nCULTURAS A\nTRAVÉS DEL\nTEATRO',
+          p1: 'Ruta Teatral es una organización cultural sin ánimo de lucro con sede en South Florida, dedicada a promover el teatro en español, la educación y la comunidad a través de programas innovadores.',
+          p2: 'Creemos en el poder transformador del teatro en vivo para conectar comunidades, celebrar la cultura latina e inspirar a la próxima generación de artistas y audiencias.',
+          pillars: ['Cultural', 'Comunitaria', 'Inspiradora', 'Inclusiva'],
+          cta: 'CONOCE MÁS →',
+        },
+        productions: {
+          label: 'Cartelera 2025',
+          title: 'PRODUCCIONES\nDESTACADAS',
+          viewAll: 'VER TODAS →',
+          buy: 'COMPRAR ENTRADAS',
+          items: [
+            { img: IMG_NOEREST, cat: 'Stand-Up Comedy', title: 'No Eres Tú, ¡Soy Yo!', date: 'Sáb. 23 de Mayo | 8PM', desc: 'Luis Fernández en un show de comedia íntimo y desternillante en el Teatro Tower, Miami.' },
+            { img: IMG_TOCTOC,  cat: 'Comedia',         title: 'Toc Toc',               date: '2 de Mayo | 8PM · Boca Raton', desc: 'Seis personajes con TOC se encuentran en la sala de espera de un famoso psiquiatra. La comedia más trastornada regresa.' },
+            { img: IMG_CUCAR,   cat: 'Especial Infantil', title: 'La Cucarachita Martina', date: 'Dom. 3 de Mayo | 11AM · Gratis', desc: 'Un espectáculo familiar gratuito para los más pequeños, apoyado por Coral Gables y Miami-Dade County.' },
+          ],
+        },
+        programs: {
+          label: 'Nuestros Programas',
+          title: 'TEATRO PARA TODOS',
+          items: [
+            { title: 'Teatro para la Educación', desc: 'Llevamos el teatro en vivo a escuelas y centros educativos de South Florida, fomentando creatividad, identidad cultural y confianza.' },
+            { title: 'Ruta Silver', desc: 'Programas diseñados para la tercera edad — conectando a los mayores con la cultura y el gozo transformador de las artes escénicas.' },
+            { title: 'World Theater Day Festival', desc: 'Festival multicultural anual que celebra el teatro global con producciones, talleres y eventos comunitarios abiertos a toda South Florida.' },
+            { title: 'Ruta Kids', desc: 'Experiencias de teatro interactivo, talleres y espectáculos para niños y familias — encendiendo la imaginación desde el principio.' },
+          ],
+          learn: 'SABER MÁS',
+        },
+        blog: {
+          label: 'Blog & Artículos',
+          title: 'HISTORIAS DEL\nTEATRO',
+          readMore: 'LEER MÁS →',
+          categories: ['Educación', 'Comunidad', 'Artes Escénicas', 'Noticias'],
+          searchPlaceholder: 'Buscar en el blog...',
+          allCategories: 'Todos',
+          noResults: 'No se encontraron artículos con ese criterio.',
+          featured: 'DESTACADO',
+          readTime: 'min de lectura',
+          backBtn: 'Volver al Blog',
+          sidebarSearch: 'Buscar artículos...',
+          sidebarCategories: 'Categorías',
+          sidebarAll: 'Todas',
+          sidebarRecent: 'Artículos Recientes',
+          sidebarComments: 'Comentarios',
+          sidebarCommentPlaceholder: 'Añade tu comentario...',
+          sidebarCommentBtn: 'Publicar',
+          shareLabel: 'Comparte este artículo',
+          items: [
+            {
+              id: 1,
+              img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80',
+              cat: 'Educación',
+              title: '5 beneficios del teatro en el desarrollo infantil',
+              excerpt: 'Descubre cómo el teatro transforma la confianza, creatividad y habilidades sociales en los niños...',
+              date: '15 de Abril, 2025',
+              author: 'Mauro Gorrín',
+              content: 'El teatro infantil es mucho más que entretenimiento. A través de la actuación, el movimiento y la expresión, los niños desarrollan habilidades cognitivas y emocionales cruciales.\n\n1. Confianza en sí mismo: Actuar frente a otros requiere valor. Cada presentación fortalece la autoestima.\n\n2. Creatividad sin límites: El teatro libera la imaginación. Los niños crean mundos, personajes y historias únicas.\n\n3. Habilidades de comunicación: Expresar emociones a través del cuerpo y la voz mejora la comunicación verbal y no verbal.\n\n4. Empatía y comprensión: Interpretar diferentes personajes enseña a los niños a entender perspectivas ajenas.\n\n5. Trabajo en equipo: Las producciones teatrales requieren colaboración, fomentando amistades y respeto mutuo.\n\nEn Ruta Teatral creemos que el teatro transforma vidas. Nuestros programas educativos se diseñan para que cada niño brille en el escenario.'
+            },
+            {
+              id: 2,
+              img: 'https://images.unsplash.com/photo-1514306688989-657abdcd0e8f?w=600&q=80',
+              cat: 'Comunidad',
+              title: 'Ruta Silver: Teatro para mayores que transforma vidas',
+              excerpt: 'Conoce las historias de nuestros participantes en el programa Ruta Silver y cómo el teatro los ha rejuvenecido...',
+              date: '8 de Abril, 2025',
+              author: 'Daniela López',
+              content: 'Ruta Silver nace de una simple creencia: el arte no tiene límite de edad. Para nuestros mayores, el teatro es más que una actividad — es un renacimiento.\n\nA través del movimiento, la memoria y la expresión artística, los participantes de Ruta Silver reconectan con su energía vital. El escenario se convierte en un espacio seguro donde pueden ser ellos mismos, celebrar sus historias y crear nuevas amistades.\n\nLos beneficios van más allá del entretenimiento. La investigación muestra que las actividades artísticas en la tercera edad reducen la depresión, mejoran la memoria y refuerzan la conexión social.\n\nNuestros programas incluyen: Talleres de improvisación, Producciones teatrales, Encuentros intergeneracionales. Cada sesión es diseñada con cuidado y amor para honrar la experiencia y sabiduría de nuestros actores.'
+            },
+            {
+              id: 3,
+              img: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&q=80',
+              cat: 'Artes Escénicas',
+              title: '¿Qué hace especial el teatro en español en Miami?',
+              excerpt: 'El teatro hispanohablante es un puente cultural que conecta identidades y celebra nuestra herencia artística...',
+              date: '1 de Abril, 2025',
+              author: 'Carlos Mendoza',
+              content: 'Miami es hogar de una comunidad latina vibrante, y el teatro en español es el corazón cultural de nuestra región.\n\nEl teatro hispanohablante no es simplemente una forma de entretenimiento — es un acto de preservación cultural y resistencia artística. Cada obra llevada a escena honra nuestras tradiciones, celebra nuestras historias y conecta generaciones.\n\nEn South Florida, vemos cómo el teatro transcultural une a personas de diferentes orígenes bajo una misma pasión. Obras clásicas del teatro español se entremezclan con creaciones contemporáneas latinas, creando un ecosistema artístico único.\n\nRuta Teatral se dedica a amplificar estas voces. Nuestro compromiso es: Presentar obras en español con excelencia profesional, Fomentar nuevos dramaturgos latinos, Educar a la próxima generación de artistas hispanos.\n\nEl teatro hispanohablante en Miami es más que una art — es un movimiento. Y estamos orgullosos de ser parte de él.'
+            },
+            {
+              id: 4,
+              img: 'https://images.unsplash.com/photo-1516307365426-bea591f05011?w=600&q=80',
+              cat: 'Noticias',
+              title: 'World Theater Day 2025: Un festival que une culturas',
+              excerpt: 'Descubre el programa completo del World Theater Day y las sorpresas que hemos preparado para este año...',
+              date: '25 de Marzo, 2025',
+              author: 'Mauro Gorrín',
+              content: 'El 27 de marzo es World Theater Day — un día global dedicado a celebrar el poder transformador del teatro. En Ruta Teatral, lo celebramos como se merece: con un festival completo que une culturas, lenguas y experiencias.\n\nNuestro World Theater Day 2025 incluye: Producciones de teatro clásico y contemporáneo, Talleres participativos para todas las edades, Encuentros con dramaturgos y directores, Celebraciones comunitarias en espacios públicos.\n\nEste año, la temática es "Teatro sin Fronteras" — reconociendo cómo el teatro trasciende barreras y conecta el corazón humano. Programas de South Florida, a Nueva York y más allá, estaremos unidos en esta celebración global.\n\nUn festival para todos. Un movimiento para el cambio.'
+            },
+            {
+              id: 5,
+              img: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=80',
+              cat: 'Educación',
+              title: 'Ruta Kids: Encendiendo imaginaciones desde el principio',
+              excerpt: 'Cómo nuestro programa de teatro infantil está transformando el desarrollo creativo de cientos de niños...',
+              date: '18 de Marzo, 2025',
+              author: 'Daniela López',
+              content: 'Ruta Kids nace con un propósito simple pero poderoso: demostrar que cada niño es un artista en potencia.\n\nA través de talleres interactivos, juegos teatrales y producciones divertidas, los niños de Ruta Kids descubren su voz única. No se trata solo de aprender actuación — es sobre aprender a creer en uno mismo.\n\nNuestro currículo incluye: Técnicas de improvisación, Construcción de personajes, Movimiento y expresión corporal, Trabajo en equipo.\n\nLos resultados hablan solos. Padres reportan mayor confianza, mejor desempeño académico y amistades más profundas. Los maestros ven niños que participan más en clase, que se expresan con claridad y que colaboran mejor con sus compañeros.\n\nRuta Kids es más que un programa — es un movimiento de empoderamiento infantil a través del arte.'
+            },
+          ],
+        },
+        auditions: {
+          label: 'Convocatoria Abierta',
+          title: 'AUDICIONES &\nPRÁCTICAS 2025',
+          sub: 'Únete a nuestro equipo de artistas y educadores apasionados. Damos la bienvenida a intérpretes, directores y gestores culturales de todos los perfiles.',
+          cta: 'POSTÚLATE AHORA →',
+        },
+        community: {
+          label: 'Noticias & Comunidad',
+          title: 'SIGUE NUESTRA\nHISTORIA',
+          news: [
+            { cat: 'Audiciones',  title: 'Audiciones abiertas para la temporada 2025 — apúntate ya', date: '15 de Abril, 2025' },
+            { cat: 'Comunidad',   title: 'Ruta Kids celebra 5 años con funciones agotadas',           date: '28 de Marzo, 2025' },
+            { cat: 'Festival',    title: 'World Theater Day 2025: programa completo anunciado',       date: '10 de Marzo, 2025' },
+          ],
+        },
+        newsletter: {
+          label: 'Newsletter',
+          title: 'MANTENTE EN\nESCENA',
+          sub: 'Sé el primero en conocer próximas obras, audiciones, talleres y eventos comunitarios. Sin spam — solo teatro.',
+          placeholder: 'Tu correo electrónico',
+          cta: 'SUSCRIBIRME',
+          thanks: '✓ ¡Inscrito! Nos vemos en el teatro.',
+        },
+        footer: {
+          cols: [
+            { title: 'Organización', links: ['Sobre Nosotros', 'Misión & Visión', 'Equipo', 'Prensa'] },
+            { title: 'Teatro',       links: ['Producciones', 'Cartelera', 'Abonos', 'Venue'] },
+            { title: 'Programas',    links: ['Educación', 'Ruta Silver', 'Festival', 'Ruta Kids'] },
+            { title: 'Involúcrate',  links: ['Audiciones', 'Prácticas', 'Voluntariado', 'Donar'] },
+          ],
+          privacy: 'Privacidad', terms: 'Términos', access: 'Accesibilidad',
+          copy: '© 2025 Ruta Teatral. Todos los derechos reservados.',
+        },
+        contact: { location: 'Ubicación', contact: 'Contacto', follow: 'Síguenos' },
+        cookie: { text: 'Usamos cookies para mejorar tu experiencia.', link: 'Más información', cta: 'ACEPTAR' },
+        search: { label: 'Buscar', placeholder: 'Buscar eventos, producciones, artículos...', button: 'BUSCAR' },
+        staff: { label: 'Nuestro Equipo', title: 'CONOCE A LOS\nCREATIVOS', desc: 'Conoce a los talentosos artistas, directores y educadores que dan vida a Ruta Teatral.' },
+        calendar: {
+          label: 'Calendario de Shows', title: 'SHOWS DEL MES',
+          prev: '← Anterior', next: 'Siguiente →',
+          days: ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],
+          months: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+          noShows: 'Sin funciones este día.', buyTickets: 'Comprar Entradas', freeEntry: 'Entrada Gratuita',
+        },
+        gallery: { label: 'Galería', title: 'MOMENTOS DE\nNUESTRO ESCENARIO', expand: 'VER FOTO' },
+        faqs: { label: 'Preguntas Frecuentes', title: 'PREGUNTAS\nFRECUENTES' },
+        testimonials: { label: 'Testimonios', title: 'VOCES DE\nNUESTRA COMUNIDAD' },
+        sponsors: { label: 'Patrocinadores y Aliados', title: 'ALIADOS DE\nRUTA TEATRAL' },
+        contactForm: { label: 'Contáctanos', title: 'CONTÁCTANOS', name: 'Nombre Completo', email: 'Correo Electrónico', message: 'Tu Mensaje', send: 'ENVIAR MENSAJE' },
+        press: {
+          label: 'Prensa & Medios', title: 'LO QUE DICE\nLA PRENSA',
+          quotes: [
+            { outlet: 'Miami Herald', text: '"Ruta Teatral es sin duda la compañía de teatro en español más importante de South Florida. Una organización que eleva el nivel cultural de toda la región."', date: 'Marzo 2025' },
+            { outlet: 'Univision Miami', text: '"Una organización que transforma la escena cultural latina de Miami con cada producción. Teatro de clase mundial en español."', date: 'Abril 2025' },
+          ],
+          outlets: ['Miami Herald', 'El Nuevo Herald', 'Univision', 'Telemundo 51', 'Diario Las Américas', 'Sun Sentinel'],
+        },
+        map: { label: 'Cómo llegar', title: 'ENCUÉNTRANOS', address: '401 SW 8th St, Miami, FL 33130', directions: 'VER EN GOOGLE MAPS →' },
+      },
+      en: {
+        nav: ['About', 'Productions', 'Programs', 'Events', 'Blog', 'Auditions', 'Community', 'Contact'],
+        cta: '🎟 Tickets',
+        slides: [
+          {
+            tag: 'Sat. May 23 | 8PM · Teatro Tower, Miami',
+            cat: 'Stand-Up Comedy',
+            title: "IT'S NOT YOU\nIT'S ME!",
+            sub: "Luis Fernández in an unforgettable comedy night you simply cannot miss.",
+            cta1: 'Get Tickets', cta2: 'View Details',
+            poster: IMG_NOEREST,
+            bg: 'https://images.unsplash.com/photo-1516307365426-bea591f05011?w=1600&q=80',
+          },
+          {
+            tag: 'One Night Only · May 2 | 8PM · Boca Raton',
+            cat: 'Comedy',
+            title: 'TOC\nTOC',
+            sub: 'The most deranged comedy returns to the Countess de Hoernle Theatre, Boca Raton.',
+            cta1: 'Get Tickets', cta2: 'View Program',
+            poster: IMG_TOCTOC,
+            bg: 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=1600&q=80',
+          },
+          {
+            tag: 'Sunday May 3 | 11AM · Free Show!',
+            cat: 'Kids Theater · Ruta Kids',
+            title: 'LA CUCARACHITA\nMARTINA',
+            sub: 'A free family show presented by Ruta Kids and Coral Gables.',
+            cta1: 'Reserve Free Tickets', cta2: 'View Program',
+            poster: IMG_CUCAR,
+            bg: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1600&q=80',
+          },
+        ],
+        stats: [
+          { v: '10+', l: 'Years of Theater' },
+          { v: '50+', l: 'Productions Staged' },
+          { v: '20K+', l: 'Audience Members' },
+          { v: '4', l: 'Community Programs' },
+        ],
+        about: {
+          label: 'About Ruta Teatral',
+          title: 'CONNECTING\nCULTURES\nTHROUGH\nTHEATER',
+          p1: 'Ruta Teatral is a non-profit cultural organization based in South Florida dedicated to promoting Spanish-language theater, education, and community through innovative programs.',
+          p2: 'We believe in the transformative power of live theater to connect communities, celebrate Latin culture, and inspire the next generation of artists and audiences.',
+          pillars: ['Cultural', 'Community', 'Inspiring', 'Inclusive'],
+          cta: 'LEARN MORE →',
+        },
+        productions: {
+          label: 'Playbill 2025',
+          title: 'FEATURED\nPRODUCTIONS',
+          viewAll: 'VIEW ALL →',
+          buy: 'BUY TICKETS',
+          items: [
+            { img: IMG_NOEREST, cat: 'Stand-Up Comedy',  title: "It's Not You, It's Me!",  date: 'Sat. May 23 | 8PM', desc: 'Luis Fernández in an intimate, hilarious stand-up comedy show at Teatro Tower, Miami.' },
+            { img: IMG_TOCTOC,  cat: 'Comedy',            title: 'Toc Toc',                date: 'May 2 | 8PM · Boca Raton', desc: "Six OCD patients meet in a psychiatrist's waiting room. The most deranged comedy is back." },
+            { img: IMG_CUCAR,   cat: 'Kids Special',      title: 'La Cucarachita Martina', date: 'Sun. May 3 | 11AM · Free', desc: 'A free family show for the little ones, supported by Coral Gables and Miami-Dade County.' },
+          ],
+        },
+        programs: {
+          label: 'Our Programs',
+          title: 'THEATER FOR EVERYONE',
+          items: [
+            { title: 'Theater for Education', desc: 'Bringing live theater to schools and educational centers across South Florida, nurturing creativity, cultural identity, and confidence.' },
+            { title: 'Ruta Silver', desc: 'Theater programs designed specifically for seniors — connecting elders with culture and the transformative joy of live performance.' },
+            { title: 'World Theater Day Festival', desc: 'An annual multicultural festival celebrating global theater with productions, workshops, and community events open to all of South Florida.' },
+            { title: 'Ruta Kids', desc: 'Interactive theater experiences, workshops, and performances tailored for children and families — sparking imagination from the very beginning.' },
+          ],
+          learn: 'LEARN MORE',
+        },
+        blog: {
+          label: 'Blog & Articles',
+          title: 'STORIES FROM\nTHE STAGE',
+          readMore: 'READ MORE →',
+          categories: ['Education', 'Community', 'Performing Arts', 'News'],
+          searchPlaceholder: 'Search the blog...',
+          allCategories: 'All',
+          noResults: 'No articles found for that criteria.',
+          featured: 'FEATURED',
+          readTime: 'min read',
+          backBtn: 'Back to Blog',
+          sidebarSearch: 'Search articles...',
+          sidebarCategories: 'Categories',
+          sidebarAll: 'All',
+          sidebarRecent: 'Recent Posts',
+          sidebarComments: 'Comments',
+          sidebarCommentPlaceholder: 'Add your comment...',
+          sidebarCommentBtn: 'Post',
+          shareLabel: 'Share this article',
+          items: [
+            {
+              id: 1,
+              img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80',
+              cat: 'Education',
+              title: '5 Benefits of Theater in Child Development',
+              excerpt: 'Discover how theater transforms confidence, creativity, and social skills in children...',
+              date: 'April 15, 2025',
+              author: 'Mauro Gorrín',
+              content: 'Children\'s theater is much more than entertainment. Through acting, movement, and expression, children develop crucial cognitive and emotional skills.\n\n1. Self-Confidence: Performing in front of others requires courage. Every performance strengthens self-esteem and belief in oneself.\n\n2. Unlimited Creativity: Theater liberates imagination. Children create unique worlds, characters, and stories from their own minds.\n\n3. Communication Skills: Expressing emotions through body and voice improves both verbal and non-verbal communication.\n\n4. Empathy & Understanding: Playing different characters teaches children to understand perspectives different from their own.\n\n5. Teamwork & Collaboration: Theater productions require teamwork, fostering friendships and mutual respect among participants.\n\nAt Ruta Teatral, we believe theater transforms lives. Our educational programs are designed so every child can shine on stage and discover their unique voice.'
+            },
+            {
+              id: 2,
+              img: 'https://images.unsplash.com/photo-1514306688989-657abdcd0e8f?w=600&q=80',
+              cat: 'Community',
+              title: 'Ruta Silver: Theater for Seniors That Changes Lives',
+              excerpt: 'Meet the participants of our Ruta Silver program and discover how theater has rejuvenated them...',
+              date: 'April 8, 2025',
+              author: 'Daniela López',
+              content: 'Ruta Silver is built on a simple belief: art has no age limit. For our seniors, theater is far more than an activity — it\'s a rebirth.\n\nThrough movement, memory, and artistic expression, Ruta Silver participants reconnect with their vital energy. The stage becomes a safe space where they can be themselves, celebrate their stories, and forge meaningful friendships.\n\nThe benefits extend beyond entertainment. Research shows that artistic activities for older adults reduce depression, improve memory, and strengthen social connections.\n\nOur programs include: Improvisation workshops, Theater productions, Intergenerational encounters. Each session is carefully designed with love and respect to honor the experience and wisdom of our actors.\n\nThrough Ruta Silver, we celebrate the power of senior artistry and prove that the stage truly knows no age.'
+            },
+            {
+              id: 3,
+              img: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&q=80',
+              cat: 'Performing Arts',
+              title: 'What Makes Spanish Theater Special in Miami?',
+              excerpt: 'Spanish-language theater is a cultural bridge connecting identities and celebrating our artistic heritage...',
+              date: 'April 1, 2025',
+              author: 'Carlos Mendoza',
+              content: 'Miami is home to a vibrant Latino community, and Spanish-language theater is the cultural heartbeat of our region.\n\nHispanic theater is not simply a form of entertainment — it\'s an act of cultural preservation and artistic resistance. Every production staged honors our traditions, celebrates our stories, and connects generations across time.\n\nIn South Florida, we witness how transcultural theater unites people from diverse backgrounds under one shared passion. Classical Spanish theater works intermingle with contemporary Latin American creations, creating a unique artistic ecosystem.\n\nRuta Teatral is dedicated to amplifying these voices. Our commitment is: To present Spanish-language works with professional excellence, To nurture new Latin American playwrights, To educate the next generation of Hispanic artists.\n\nSpanish-language theater in Miami is more than art — it\'s a movement. And we\'re proud to be part of it.'
+            },
+            {
+              id: 4,
+              img: 'https://images.unsplash.com/photo-1516307365426-bea591f05011?w=600&q=80',
+              cat: 'News',
+              title: 'World Theater Day 2025: A Festival That Unites Cultures',
+              excerpt: 'Discover the full program of World Theater Day and the surprises we\'ve prepared for this year...',
+              date: 'March 25, 2025',
+              author: 'Mauro Gorrín',
+              content: 'March 27 is World Theater Day — a global celebration dedicated to honoring the transformative power of theater. At Ruta Teatral, we celebrate as it deserves to be celebrated: with a full festival that unites cultures, languages, and experiences.\n\nOur World Theater Day 2025 includes: Classical and contemporary theater productions, Interactive workshops for all ages, Encounters with playwrights and directors, Community celebrations in public spaces.\n\nThis year\'s theme is "Theater Without Borders" — recognizing how theater transcends barriers and connects the human heart. From South Florida to New York and beyond, we\'ll be united in this global celebration.\n\nA festival for everyone. A movement for change.'
+            },
+            {
+              id: 5,
+              img: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=80',
+              cat: 'Education',
+              title: 'Ruta Kids: Igniting Imaginations From the Beginning',
+              excerpt: 'How our children\'s theater program is transforming the creative development of hundreds of young artists...',
+              date: 'March 18, 2025',
+              author: 'Daniela López',
+              content: 'Ruta Kids is born with a simple but powerful purpose: to prove that every child is an artist in waiting.\n\nThrough interactive workshops, theater games, and fun productions, children in Ruta Kids discover their unique voice. It\'s not just about learning acting — it\'s about learning to believe in themselves.\n\nOur curriculum includes: Improvisation techniques, Character development, Movement and physical expression, Teamwork and collaboration.\n\nThe results speak for themselves. Parents report greater confidence, better academic performance, and deeper friendships. Teachers see children participating more in class, expressing themselves with clarity, and collaborating better with classmates.\n\nRuta Kids is more than a program — it\'s a movement of child empowerment through the arts.'
+            },
+          ],
+        },
+        auditions: {
+          label: 'Now Open',
+          title: 'AUDITIONS &\nINTERNSHIPS 2025',
+          sub: 'Join our team of passionate artists and educators. We welcome performers, directors, and arts administrators of all backgrounds.',
+          cta: 'APPLY NOW →',
+        },
+        community: {
+          label: 'News & Community',
+          title: 'FOLLOW OUR\nSTORY',
+          news: [
+            { cat: 'Auditions', title: 'Open auditions for the 2025 season — apply now',   date: 'April 15, 2025' },
+            { cat: 'Community', title: 'Ruta Kids celebrates 5 years with sold-out shows',  date: 'March 28, 2025' },
+            { cat: 'Festival',  title: 'World Theater Day 2025: full program announced',    date: 'March 10, 2025' },
+          ],
+        },
+        newsletter: {
+          label: 'Newsletter',
+          title: 'STAY IN THE\nSPOTLIGHT',
+          sub: 'Be the first to know about upcoming shows, auditions, workshops, and community events. No spam — only theater.',
+          placeholder: 'Your email address',
+          cta: 'SUBSCRIBE',
+          thanks: "✓ You're in! See you at the theater.",
+        },
+        footer: {
+          cols: [
+            { title: 'Organization', links: ['About Us', 'Mission & Vision', 'Team', 'Press'] },
+            { title: 'Theater',      links: ['Productions', 'Playbill', 'Season Tickets', 'Venue'] },
+            { title: 'Programs',     links: ['Education', 'Ruta Silver', 'Festival', 'Ruta Kids'] },
+            { title: 'Get Involved', links: ['Auditions', 'Internships', 'Volunteer', 'Donate'] },
+          ],
+          privacy: 'Privacy Policy', terms: 'Terms of Use', access: 'Accessibility',
+          copy: '© 2025 Ruta Teatral. All rights reserved.',
+        },
+        contact: { location: 'Location', contact: 'Contact', follow: 'Follow Us' },
+        cookie: { text: 'We use cookies to enhance your experience.', link: 'Learn more', cta: 'ACCEPT' },
+        search: { label: 'Search', placeholder: 'Search events, productions, articles...', button: 'SEARCH' },
+        staff: { label: 'Our Team', title: 'MEET THE\nCREATIVES', desc: 'Meet the talented artists, directors, and educators who bring Ruta Teatral to life.' },
+        calendar: {
+          label: 'Show Schedule', title: 'SHOWS THIS MONTH',
+          prev: '← Previous', next: 'Next →',
+          days: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+          months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+          noShows: 'No shows scheduled for this day.', buyTickets: 'Buy Tickets', freeEntry: 'Free Entry',
+        },
+        gallery: { label: 'Gallery', title: 'MOMENTS FROM\nOUR STAGE', expand: 'VIEW PHOTO' },
+        faqs: { label: 'FAQs', title: 'FREQUENTLY ASKED\nQUESTIONS' },
+        testimonials: { label: 'Testimonials', title: 'VOICES FROM\nOUR COMMUNITY' },
+        sponsors: { label: 'Sponsors & Partners', title: 'PROUD PARTNERS\nOF RUTA TEATRAL' },
+        contactForm: { label: 'Get in Touch', title: 'CONTACT\nUS', name: 'Full Name', email: 'Email Address', message: 'Your Message', send: 'SEND MESSAGE' },
+        press: {
+          label: 'Press & Media', title: 'WHAT THE\nPRESS SAYS',
+          quotes: [
+            { outlet: 'Miami Herald', text: '"Ruta Teatral is without a doubt the most important Spanish-language theater company in South Florida. An organization that elevates the cultural level of the entire region."', date: 'March 2025' },
+            { outlet: 'Univision Miami', text: '"An organization transforming Miami\'s Latino cultural scene with every production. World-class Spanish theater."', date: 'April 2025' },
+          ],
+          outlets: ['Miami Herald', 'El Nuevo Herald', 'Univision', 'Telemundo 51', 'Diario Las Américas', 'Sun Sentinel'],
+        },
+        map: { label: 'Find Us', title: 'FIND US', address: '401 SW 8th St, Miami, FL 33130', directions: 'OPEN IN GOOGLE MAPS →' },
+      },
+    };
+
+    const NAV_IDS = ['about', 'productions', 'programs', 'calendar', 'blog', 'auditions', 'community', 'contact-form'];
+
+    const INSTA_IMGS = [
+      'https://images.unsplash.com/photo-1503095396549-807759245b35?w=400&q=80',
+      'https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=400&q=80',
+      'https://images.unsplash.com/photo-1516307365426-bea591f05011?w=400&q=80',
+      'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&q=80',
+    ];
+    const NEWS_IMGS = [
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&q=80',
+      'https://images.unsplash.com/photo-1541188495357-ad2dc89487f4?w=500&q=80',
+      'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?w=500&q=80',
+    ];
+
+    /* ── HEADER ── */
+    function Header({ lang, setLang }) {
+      const [open, setOpen] = useState(false);
+      const [scrolled, setScrolled] = useState(false);
+      const t = TR[lang];
+
+      useEffect(() => {
+        const fn = () => setScrolled(window.scrollY > 60);
+        window.addEventListener('scroll', fn);
+        return () => window.removeEventListener('scroll', fn);
+      }, []);
+
+      return (
+        <header style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 900,
+          background: scrolled ? 'rgba(13,13,13,0.96)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(14px)' : 'none',
+          borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
+          transition: 'all 0.35s ease',
+        }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 1.5rem', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+            {/* Real Logo */}
+            <a href="#" style={{ textDecoration: 'none', flexShrink: 0 }}>
+              <img src={LOGO} alt="Ruta Teatral" style={{ height: 56, width: 'auto', objectFit: 'contain', display: 'block' }} />
+            </a>
+
+            {/* Desktop Nav */}
+            <nav className="desktop-nav" style={{ display: 'flex', gap: '1.6rem', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+              {t.nav.map((l, i) => (
+                <a key={l} href={`#${NAV_IDS[i]}`} className="nav-link">{l}</a>
+              ))}
+            </nav>
+
+            {/* Controls */}
+            <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexShrink: 0 }}>
+              <div className="lang-toggle">
+                <button className={`lang-btn ${lang === 'es' ? 'lang-active' : 'lang-inactive'}`} onClick={() => setLang('es')}>ES</button>
+                <button className={`lang-btn ${lang === 'en' ? 'lang-active' : 'lang-inactive'}`} onClick={() => setLang('en')}>EN</button>
+              </div>
+              <a href="#tickets" className="btn-yellow" style={{ padding: '0.6rem 1.2rem', fontSize: '0.7rem' }}>{t.cta}</a>
+            </div>
+
+            {/* Mobile toggle */}
+            <button className="mobile-btn" onClick={() => setOpen(!open)}
+              style={{ display: 'none', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', alignItems: 'center', justifyContent: 'center', width: 44, height: 44 }}>
+              {open ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+
+          {open && (
+            <div style={{ background: '#0D0D0D', borderTop: '1px solid rgba(242,183,5,0.15)', padding: '1rem 1.5rem 1.5rem' }}>
+              {t.nav.map((l, i) => (
+                <a key={l} href={`#${NAV_IDS[i]}`} onClick={() => setOpen(false)}
+                  style={{ display: 'block', padding: '0.85rem 0', fontFamily: 'Montserrat', fontWeight: 600, fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', textDecoration: 'none', letterSpacing: '0.12em', textTransform: 'uppercase', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  {l}
+                </a>
+              ))}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.75rem' }}>
+                <button className={`lang-btn ${lang === 'es' ? 'lang-active' : 'lang-inactive'}`} onClick={() => setLang('es')} style={{ border: '1px solid rgba(242,183,5,0.4)' }}>ES</button>
+                <button className={`lang-btn ${lang === 'en' ? 'lang-active' : 'lang-inactive'}`} onClick={() => setLang('en')} style={{ border: '1px solid rgba(242,183,5,0.4)' }}>EN</button>
+              </div>
+              <a href="#tickets" className="btn-yellow" style={{ display: 'block', textAlign: 'center', marginTop: '0.5rem' }}>{t.cta.toUpperCase()}</a>
+            </div>
+          )}
+        </header>
+      );
+    }
+
+    /* ── HERO ── */
+    function Hero({ lang }) {
+      const [cur, setCur] = useState(0);
+      const [animKey, setAnimKey] = useState(0);
+      const [progress, setProgress] = useState(0);
+      const t = TR[lang];
+      const slides = t.slides;
+
+      const go = useCallback((next) => {
+        const idx = ((next % slides.length) + slides.length) % slides.length;
+        setCur(idx);
+        setAnimKey(k => k + 1);
+        setProgress(0);
+      }, [slides.length]);
+
+      useEffect(() => {
+        const timer = setInterval(() => go(cur + 1), SLIDE_DURATION);
+        return () => clearInterval(timer);
+      }, [cur, go]);
+
+      useEffect(() => {
+        setProgress(0);
+        const start = performance.now();
+        let raf;
+        const tick = (now) => {
+          const p = Math.min(((now - start) / SLIDE_DURATION) * 100, 100);
+          setProgress(p);
+          if (p < 100) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+      }, [cur]);
+
+      const slide = slides[cur];
+
+      return (
+        <section id="hero" style={{ position: 'relative', height: '100vh', minHeight: 640, overflow: 'hidden' }}>
+
+          {/* Ken Burns Background */}
+          <div key={`bg-${cur}`} style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `url(${slide.bg})`,
+            backgroundSize: 'cover', backgroundPosition: 'center',
+            animation: `kenBurns ${SLIDE_DURATION}ms ease forwards`,
+          }} />
+
+          {/* Gradients */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(100deg, rgba(13,13,13,0.97) 0%, rgba(13,13,13,0.78) 45%, rgba(13,13,13,0.22) 100%)' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 220, background: 'linear-gradient(to top, #0D0D0D, transparent)' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 160, background: 'linear-gradient(to bottom, rgba(13,13,13,0.55), transparent)' }} />
+
+          {/* Content */}
+          <div style={{ position: 'relative', zIndex: 10, height: '100%', display: 'flex', alignItems: 'center', maxWidth: 1400, margin: '0 auto', padding: '80px 1.5rem 0', gap: '4rem' }}>
+
+            {/* Text */}
+            <div key={animKey} style={{ flex: 1, maxWidth: 660 }}>
+              <div className="reveal-up d0" style={{ marginBottom: '0.8rem' }}>
+                <span className="tag-pill">{slide.cat}</span>
+              </div>
+              <div className="reveal-up d1" style={{ marginBottom: '0.6rem', fontFamily: 'Montserrat', fontSize: '0.7rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+                {slide.tag}
+              </div>
+              <h1 className="anton reveal-up d2" style={{
+                fontSize: 'clamp(3rem, 7vw, 6rem)', lineHeight: 1,
+                color: '#fff', textTransform: 'uppercase',
+                marginBottom: '1.2rem', whiteSpace: 'pre-line',
+              }}>
+                {slide.title}
+              </h1>
+              <p className="reveal-up d3" style={{
+                fontFamily: 'Montserrat', fontWeight: 300,
+                fontSize: 'clamp(0.9rem, 1.6vw, 1.05rem)',
+                color: 'rgba(255,255,255,0.72)', lineHeight: 1.8, marginBottom: '2.2rem',
+              }}>
+                {slide.sub}
+              </p>
+              <div className="reveal-up d4" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <a href="#tickets" className="btn-yellow">{slide.cta1.toUpperCase()}</a>
+                <a href="#productions" className="btn-ghost">{slide.cta2.toUpperCase()}</a>
+              </div>
+            </div>
+
+            {/* Poster */}
+            <div className="hero-poster-col" style={{ flexShrink: 0, width: 255 }}>
+              <div key={`poster-${cur}`} className="poster-frame" style={{ animation: 'posterIn 0.85s 0.35s ease both' }}>
+                <img src={slide.poster} alt={slide.title} style={{ width: '100%', display: 'block' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Slide indicator */}
+          <div style={{ position: 'absolute', right: '2rem', bottom: '5.5rem', zIndex: 20, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {slides.map((_, i) => (
+                <div key={i} onClick={() => go(i)} style={{
+                  height: i === cur ? 32 : 4, width: 3,
+                  background: i === cur ? '#F2B705' : 'rgba(255,255,255,0.28)',
+                  transition: 'all 0.45s ease', cursor: 'pointer', borderRadius: 2,
+                }} />
+              ))}
+            </div>
+            <span style={{ fontFamily: 'Anton', fontSize: '2.2rem', color: 'rgba(242,183,5,0.85)', lineHeight: 1 }}>
+              {String(cur + 1).padStart(2, '0')}
+            </span>
+          </div>
+
+          {/* Arrow buttons */}
+          {[{ d: -1, Icon: ChevronLeft, side: 'left' }, { d: 1, Icon: ChevronRight, side: 'right' }].map(({ d, Icon, side }) => (
+            <button key={side} onClick={() => go(cur + d)} style={{
+              position: 'absolute', [side]: '1.25rem', top: '50%', transform: 'translateY(-50%)',
+              zIndex: 20, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)',
+              color: '#fff', width: 50, height: 50, borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.25s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#8C1D40'; e.currentTarget.style.borderColor = '#8C1D40'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; }}>
+              <Icon size={20} />
+            </button>
+          ))}
+
+          {/* Progress bar */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.08)', zIndex: 20 }}>
+            <div style={{ height: '100%', background: '#F2B705', width: `${progress}%`, transition: 'width 0.1s linear' }} />
+          </div>
+        </section>
+      );
+    }
+
+    /* ── STATS BAR ── */
+    function StatsBar({ lang }) {
+      const t = TR[lang];
+      return (
+        <div style={{ background: '#8C1D40', padding: '1.6rem 1.5rem' }}>
+          <div className="stats-grid" style={{ maxWidth: 1400, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1rem', textAlign: 'center' }}>
+            {t.stats.map(s => (
+              <div key={s.l}>
+                <div style={{ fontFamily: 'Anton', fontSize: '2.2rem', color: '#F2B705', lineHeight: 1 }}>{s.v}</div>
+                <div style={{ fontFamily: 'Montserrat', fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.75)', marginTop: '0.3rem' }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── ABOUT ── */
+    function About({ lang }) {
+      const t = TR[lang].about;
+      const pillars = [
+        { e: '🎭', l: t.pillars[0] }, { e: '🤝', l: t.pillars[1] },
+        { e: '⭐', l: t.pillars[2] }, { e: '💡', l: t.pillars[3] },
+      ];
+      return (
+        <section id="about" style={{ padding: '8rem 1.5rem', background: '#0D0D0D', position: 'relative' }}>
+          <div className="dot-pattern" style={{ position: 'absolute', inset: 0, opacity: 0.5 }} />
+          <div className="about-grid" style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5rem', alignItems: 'center' }}>
+            <div className="about-img-col" style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', top: -20, left: -20, width: '55%', height: '50%', border: '2px solid #8C1D40', zIndex: 0 }} />
+              <img src="https://images.unsplash.com/photo-1552422535-c45813c61732?w=700&q=80"
+                alt="Ruta Teatral community performance"
+                style={{ width: '100%', height: 520, objectFit: 'cover', position: 'relative', zIndex: 1, display: 'block' }} loading="lazy" />
+              <div style={{ position: 'absolute', bottom: -20, right: -20, background: '#F2B705', padding: '1.4rem 1.6rem', zIndex: 2 }}>
+                <div style={{ fontFamily: 'Anton', fontSize: '1.8rem', color: '#0D0D0D', lineHeight: 1.1 }}>TEATRO</div>
+                <div style={{ fontFamily: 'Anton', fontSize: '1.8rem', color: '#8C1D40', lineHeight: 1.1 }}>QUE NOS</div>
+                <div style={{ fontFamily: 'Anton', fontSize: '1.8rem', color: '#0D0D0D', lineHeight: 1.1 }}>UNE</div>
+              </div>
+            </div>
+            <div>
+              <p className="label line-accent">{t.label}</p>
+              <h2 className="section-title" style={{ fontSize: 'clamp(2.2rem, 4vw, 3.6rem)', marginBottom: '1.5rem', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+              <p style={{ fontFamily: 'Montserrat', fontWeight: 300, color: 'rgba(255,255,255,0.7)', lineHeight: 1.85, marginBottom: '1rem', fontSize: '1rem' }}>{t.p1}</p>
+              <p style={{ fontFamily: 'Montserrat', fontWeight: 300, color: 'rgba(255,255,255,0.7)', lineHeight: 1.85, marginBottom: '2.5rem', fontSize: '1rem' }}>{t.p2}</p>
+              <div style={{ display: 'flex', gap: '2rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
+                {pillars.map(p => (
+                  <div key={p.l} style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.6rem', marginBottom: '0.35rem' }}>{p.e}</div>
+                    <div style={{ fontFamily: 'Montserrat', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#F2B705' }}>{p.l}</div>
+                  </div>
+                ))}
+              </div>
+              <a href="#programs" className="btn-yellow">{t.cta}</a>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── PRODUCTIONS ── */
+    function Productions({ lang }) {
+      const t = TR[lang].productions;
+      return (
+        <section id="productions" style={{ padding: '7rem 1.5rem', background: '#111111' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <p className="label">{t.label}</p>
+                <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+              </div>
+              <a href="#" className="btn-outline" style={{ fontSize: '0.72rem', padding: '0.7rem 1.4rem' }}>{t.viewAll}</a>
+            </div>
+            <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1.5rem' }}>
+              {t.items.map((p, i) => (
+                <div key={i} className="card" style={{ background: '#191919', overflow: 'hidden' }}>
+                  <div className="img-overlay" style={{ height: 360 }}>
+                    <img src={p.img} alt={p.title} loading="lazy"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block' }} />
+                    <div className="overlay">
+                      <span style={{ fontFamily: 'Anton', fontSize: '0.9rem', letterSpacing: '0.1em', color: '#fff', border: '2px solid #fff', padding: '0.6rem 1.2rem' }}>VIEW DETAILS</span>
+                    </div>
+                    <div style={{ position: 'absolute', top: '1rem', left: '1rem' }}>
+                      <span className="tag-pill">{p.cat}</span>
+                    </div>
+                  </div>
+                  <div style={{ padding: '1.6rem' }}>
+                    <div style={{ fontFamily: 'Montserrat', fontSize: '0.72rem', fontWeight: 700, color: '#F2B705', marginBottom: '0.6rem', letterSpacing: '0.05em' }}>📅 {p.date}</div>
+                    <h3 style={{ fontFamily: 'Anton', fontSize: '1.45rem', color: '#fff', textTransform: 'uppercase', lineHeight: 1.1, marginBottom: '0.8rem' }}>{p.title}</h3>
+                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.65, marginBottom: '1.5rem' }}>{p.desc}</p>
+                    <a href="#tickets" className="btn-yellow" style={{ fontSize: '0.72rem', padding: '0.7rem 1.4rem' }}>{t.buy}</a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── PROGRAMS ── */
+    function Programs({ lang }) {
+      const t = TR[lang].programs;
+      const icons = [<BookOpen size={28} />, <Heart size={28} />, <Music size={28} />, <Star size={28} />];
+      return (
+        <section id="programs" style={{ padding: '7rem 1.5rem', background: '#0D0D0D' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <p className="label">{t.label}</p>
+              <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem' }}>{t.title}</h2>
+            </div>
+            <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1.5rem' }}>
+              {t.items.map((p, i) => (
+                <div key={i} className="program-card">
+                  <div style={{ color: '#8C1D40', marginBottom: '1.5rem' }}>{icons[i]}</div>
+                  <h3 style={{ fontFamily: 'Anton', fontSize: '1.25rem', color: '#F2B705', textTransform: 'uppercase', lineHeight: 1.2, marginBottom: '1rem' }}>{p.title}</h3>
+                  <p style={{ fontFamily: 'Montserrat', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.75, marginBottom: '1.5rem' }}>{p.desc}</p>
+                  <a href="#contact" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.68rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#F2B705', textDecoration: 'none', transition: 'gap 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.gap = '0.7rem'}
+                    onMouseLeave={e => e.currentTarget.style.gap = '0.4rem'}>
+                    {t.learn} <ArrowRight size={13} />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── SEARCH BAR ── */
+    function SearchBar({ lang }) {
+      const [query, setQuery] = useState('');
+      const t = TR[lang].search;
+      return (
+        <section style={{ padding: '4rem 1.5rem', background: '#0D0D0D', borderTop: '1px solid rgba(242,183,5,0.1)', borderBottom: '1px solid rgba(242,183,5,0.1)' }}>
+          <div style={{ maxWidth: 700, margin: '0 auto' }}>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input type="text" placeholder={t.placeholder} value={query} onChange={e => setQuery(e.target.value)}
+                style={{ flex: 1, padding: '1rem 1.2rem', background: '#191919', border: '1px solid rgba(242,183,5,0.3)', color: '#fff', fontFamily: 'Montserrat', fontSize: '0.95rem', outline: 'none' }}
+                onFocus={e => e.currentTarget.style.borderColor = '#F2B705'}
+                onBlur={e => e.currentTarget.style.borderColor = 'rgba(242,183,5,0.3)'} />
+              <button className="btn-yellow">{t.button}</button>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── STAFF ── */
+    function Staff({ lang }) {
+      const t = TR[lang].staff;
+      const staff = [
+        { name: 'Daniela López', role: 'Directora Artística', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80' },
+        { name: 'Carlos Mendoza', role: 'Director de Educación', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80' },
+        { name: 'Ana García', role: 'Productora', img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80' },
+        { name: 'Miguel Torres', role: 'Director Técnico', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80' },
+      ];
+      return (
+        <section id="staff" style={{ padding: '7rem 1.5rem', background: '#111111' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <p className="label">{t.label}</p>
+              <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+              <p style={{ fontFamily: 'Montserrat', color: 'rgba(255,255,255,0.6)', marginTop: '1.5rem', fontSize: '1rem', maxWidth: 600, margin: '1.5rem auto 0' }}>{t.desc}</p>
+            </div>
+            <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '2rem' }}>
+              {staff.map((member, i) => (
+                <div key={i} style={{ textAlign: 'center' }}>
+                  <div style={{ height: 300, borderRadius: '4px', overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    <img src={member.img} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <h3 style={{ fontFamily: 'Anton', fontSize: '1.1rem', color: '#fff', marginBottom: '0.5rem' }}>{member.name}</h3>
+                  <p style={{ fontFamily: 'Montserrat', fontSize: '0.85rem', color: '#F2B705' }}>{member.role}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── SHOW CALENDAR (monthly grid) ── */
+    function EventsCalendar({ lang }) {
+      const t = TR[lang].calendar;
+      const [view, setView] = useState({ year: 2025, month: 4 });
+      const [selectedDay, setSelectedDay] = useState(null);
+
+      const SHOWS = [
+        { date: '2025-05-02', title: 'Toc Toc', time: '8:00 PM', location: 'Countess de Hoernle Theatre, Boca Raton', type: 'Comedy', free: false },
+        { date: '2025-05-03', title: 'La Cucarachita Martina', time: '11:00 AM', location: 'Coral Gables Cultural Center', type: 'Kids', free: true },
+        { date: '2025-05-10', title: 'Ruta Kids Workshop', time: '10:00 AM', location: 'Coral Way Arts Center', type: 'Kids', free: true },
+        { date: '2025-05-17', title: 'Ruta Silver Session', time: '2:00 PM', location: 'Miami Senior Center', type: 'Silver', free: false },
+        { date: '2025-05-23', title: 'No Eres Tú, ¡Soy Yo!', time: '8:00 PM', location: 'Teatro Tower, Miami', type: 'Comedy', free: false },
+        { date: '2025-05-30', title: 'Ensayo Abierto', time: '7:00 PM', location: 'Sede Ruta Teatral', type: 'Special', free: true },
+        { date: '2025-06-07', title: 'World Theater Day', time: '6:00 PM', location: 'Bayfront Park', type: 'Festival', free: true },
+        { date: '2025-06-15', title: 'Hamlet', time: '7:30 PM', location: 'Theater Tower', type: 'Drama', free: false },
+        { date: '2025-06-21', title: 'Ruta Kids Show', time: '11:00 AM', location: 'Miami Children\'s Museum', type: 'Kids', free: false },
+        { date: '2025-07-04', title: 'Summer Comedy Night', time: '8:00 PM', location: 'Bayfront Park', type: 'Comedy', free: false },
+      ];
+
+      const TYPE_COLORS = { Comedy: '#8C1D40', Kids: '#F2B705', Drama: '#2D6A4F', Festival: '#E07A5F', Silver: '#457B9D', Special: '#9B59B6' };
+
+      const { year, month } = view;
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      const showsByDay = {};
+      SHOWS.filter(s => s.date.startsWith(monthKey)).forEach(s => {
+        const d = parseInt(s.date.split('-')[2]);
+        if (!showsByDay[d]) showsByDay[d] = [];
+        showsByDay[d].push(s);
+      });
+
+      const prevMonth = () => { setSelectedDay(null); setView(v => v.month === 0 ? { year: v.year - 1, month: 11 } : { ...v, month: v.month - 1 }); };
+      const nextMonth = () => { setSelectedDay(null); setView(v => v.month === 11 ? { year: v.year + 1, month: 0 } : { ...v, month: v.month + 1 }); };
+
+      const cells = [];
+      for (let i = 0; i < firstDay; i++) cells.push(null);
+      for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+      return (
+        <section id="calendar" style={{ padding: '7rem 1.5rem', background: '#0D0D0D' }}>
+          <div style={{ maxWidth: 920, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+              <p className="label">{t.label}</p>
+              <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+            </div>
+
+            {/* Month nav */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+              <button onClick={prevMonth} style={{ background: '#191919', border: 'none', color: 'rgba(255,255,255,0.7)', padding: '0.55rem 1.1rem', cursor: 'pointer', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.08em', transition: 'color 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#F2B705'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>{t.prev}</button>
+              <h3 style={{ fontFamily: 'Anton', fontSize: '1.6rem', color: '#F2B705', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.months[month]} {year}</h3>
+              <button onClick={nextMonth} style={{ background: '#191919', border: 'none', color: 'rgba(255,255,255,0.7)', padding: '0.55rem 1.1rem', cursor: 'pointer', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.08em', transition: 'color 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#F2B705'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>{t.next}</button>
+            </div>
+
+            {/* Day headers */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 2 }}>
+              {t.days.map(d => (
+                <div key={d} style={{ textAlign: 'center', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.6rem', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.3)', padding: '0.5rem 0', textTransform: 'uppercase' }}>{d}</div>
+              ))}
+            </div>
+
+            {/* Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: '1.5rem' }}>
+              {cells.map((day, i) => {
+                const has = day && showsByDay[day];
+                const sel = day === selectedDay;
+                return (
+                  <div key={i} onClick={() => day && setSelectedDay(sel ? null : day)}
+                    style={{ background: sel ? '#8C1D40' : day ? '#191919' : 'transparent', minHeight: 80, padding: '0.6rem 0.5rem', cursor: day ? 'pointer' : 'default', transition: 'background 0.18s', position: 'relative' }}
+                    onMouseEnter={e => { if (day && !sel) e.currentTarget.style.background = '#222'; }}
+                    onMouseLeave={e => { if (day && !sel) e.currentTarget.style.background = '#191919'; }}>
+                    {day && (
+                      <>
+                        <span style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.85rem', color: sel ? '#fff' : 'rgba(255,255,255,0.65)' }}>{day}</span>
+                        {has && (
+                          <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            {showsByDay[day].slice(0, 3).map((s, j) => (
+                              <div key={j} style={{ height: 4, background: TYPE_COLORS[s.type] || '#F2B705', borderRadius: 2 }} />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Selected day detail */}
+            {selectedDay && (
+              <div style={{ background: '#191919', padding: '2rem', borderTop: '3px solid #F2B705', marginBottom: '2rem' }}>
+                {(showsByDay[selectedDay] || []).length === 0 ? (
+                  <p style={{ fontFamily: 'Montserrat', color: 'rgba(255,255,255,0.4)', textAlign: 'center', fontSize: '0.9rem' }}>{t.noShows}</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                    {showsByDay[selectedDay].map((s, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', paddingBottom: i < showsByDay[selectedDay].length - 1 ? '1.2rem' : 0, borderBottom: i < showsByDay[selectedDay].length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
+                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: TYPE_COLORS[s.type] || '#F2B705', flexShrink: 0 }} />
+                            <h4 style={{ fontFamily: 'Anton', fontSize: '1.1rem', color: '#fff', textTransform: 'uppercase' }}>{s.title}</h4>
+                            <span className="tag-pill" style={{ fontSize: '0.6rem' }}>{s.type}</span>
+                          </div>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', paddingLeft: '1.4rem' }}>🕐 {s.time} &nbsp;·&nbsp; 📍 {s.location}</p>
+                        </div>
+                        <a href="#tickets" className={s.free ? 'btn-outline' : 'btn-yellow'} style={{ fontSize: '0.68rem', padding: '0.6rem 1.2rem', flexShrink: 0 }}>
+                          {s.free ? t.freeEntry : t.buyTickets}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Legend */}
+            <div style={{ display: 'flex', gap: '1.2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {Object.entries(TYPE_COLORS).map(([type, color]) => (
+                <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: color }} />
+                  <span style={{ fontFamily: 'Montserrat', fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em' }}>{type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── GALLERY + LIGHTBOX ── */
+    function Gallery({ lang }) {
+      const t = TR[lang].gallery;
+      const [lbIdx, setLbIdx] = useState(null);
+
+      const IMGS = [
+        { src: 'https://images.unsplash.com/photo-1516307365426-bea591f05011?w=1400&q=90', thumb: 'https://images.unsplash.com/photo-1516307365426-bea591f05011?w=600&q=75' },
+        { src: 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=1400&q=90', thumb: 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&q=75' },
+        { src: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1400&q=90', thumb: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=75' },
+        { src: 'https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=1400&q=90', thumb: 'https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=600&q=75' },
+        { src: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1400&q=90', thumb: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&q=75' },
+        { src: 'https://images.unsplash.com/photo-1514306688989-657abdcd0e8f?w=1400&q=90', thumb: 'https://images.unsplash.com/photo-1514306688989-657abdcd0e8f?w=600&q=75' },
+      ];
+      const total = IMGS.length;
+      const prev = () => setLbIdx(i => (i - 1 + total) % total);
+      const next = () => setLbIdx(i => (i + 1) % total);
+
+      useEffect(() => {
+        if (lbIdx === null) return;
+        const onKey = (e) => {
+          if (e.key === 'Escape') setLbIdx(null);
+          if (e.key === 'ArrowLeft')  setLbIdx(i => (i - 1 + total) % total);
+          if (e.key === 'ArrowRight') setLbIdx(i => (i + 1) % total);
+        };
+        window.addEventListener('keydown', onKey);
+        document.body.style.overflow = 'hidden';
+        return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+      }, [lbIdx]);
+
+      return (
+        <>
+          <section id="gallery" style={{ padding: '7rem 1.5rem', background: '#111111' }}>
+            <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+                <p className="label">{t.label}</p>
+                <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '6px' }}>
+                {IMGS.map((img, i) => (
+                  <div key={i} onClick={() => setLbIdx(i)}
+                    style={{ height: 280, overflow: 'hidden', cursor: 'zoom-in', position: 'relative' }}
+                    onMouseEnter={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1.07)'; e.currentTarget.querySelector('.gl-over').style.opacity = '1'; }}
+                    onMouseLeave={e => { e.currentTarget.querySelector('img').style.transform = 'scale(1)'; e.currentTarget.querySelector('.gl-over').style.opacity = '0'; }}>
+                    <img src={img.thumb} alt={`Gallery ${i+1}`} loading="lazy"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.45s ease' }} />
+                    <div className="gl-over" style={{ position: 'absolute', inset: 0, background: 'rgba(140,29,64,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.3s' }}>
+                      <span style={{ fontFamily: 'Anton', fontSize: '0.8rem', letterSpacing: '0.2em', color: '#fff', border: '2px solid rgba(255,255,255,0.7)', padding: '0.55rem 1.2rem', textTransform: 'uppercase' }}>{t.expand}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ── LIGHTBOX ── */}
+          {lbIdx !== null && (
+            <div onClick={() => setLbIdx(null)}
+              style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+              {/* Close */}
+              <button onClick={() => setLbIdx(null)}
+                style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: '#fff', width: 48, height: 48, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#8C1D40'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}>
+                <X size={20} />
+              </button>
+
+              {/* Counter */}
+              <div style={{ position: 'absolute', top: '1.5rem', left: '50%', transform: 'translateX(-50%)', fontFamily: 'Anton', color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem', letterSpacing: '0.2em', userSelect: 'none' }}>
+                {lbIdx + 1} / {total}
+              </div>
+
+              {/* Prev */}
+              <button onClick={e => { e.stopPropagation(); prev(); }}
+                style={{ position: 'absolute', left: '1rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', width: 56, height: 56, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#8C1D40'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}>
+                <ChevronLeft size={26} />
+              </button>
+
+              {/* Image */}
+              <img key={lbIdx} src={IMGS[lbIdx].src} alt={`Gallery ${lbIdx+1}`}
+                onClick={e => e.stopPropagation()}
+                style={{ maxHeight: '88vh', maxWidth: '88vw', objectFit: 'contain', boxShadow: '0 30px 80px rgba(0,0,0,0.8)', userSelect: 'none' }} />
+
+              {/* Next */}
+              <button onClick={e => { e.stopPropagation(); next(); }}
+                style={{ position: 'absolute', right: '1rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', width: 56, height: 56, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#8C1D40'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}>
+                <ChevronRight size={26} />
+              </button>
+
+              {/* Thumbnail strip */}
+              <div style={{ position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '8px' }}>
+                {IMGS.map((img, i) => (
+                  <div key={i} onClick={e => { e.stopPropagation(); setLbIdx(i); }}
+                    style={{ width: 52, height: 36, overflow: 'hidden', cursor: 'pointer', border: i === lbIdx ? '2px solid #F2B705' : '2px solid rgba(255,255,255,0.15)', opacity: i === lbIdx ? 1 : 0.5, transition: 'all 0.2s', flexShrink: 0 }}>
+                    <img src={img.thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    /* ── FAQs ── */
+    function FAQs({ lang }) {
+      const t = TR[lang].faqs;
+      const faqs = [
+        { q: lang === 'es' ? '¿Dónde se ubica Ruta Teatral?' : 'Where is Ruta Teatral located?', a: lang === 'es' ? '401 SW 8th St, Miami, FL 33130, South Florida, USA' : '401 SW 8th St, Miami, FL 33130, South Florida, USA' },
+        { q: lang === 'es' ? '¿Cómo compro entradas?' : 'How do I buy tickets?', a: lang === 'es' ? 'Puedes comprar entradas directamente en nuestro sitio web o contactarnos para información sobre descuentos grupales.' : 'You can purchase tickets directly on our website or contact us for group discounts.' },
+        { q: lang === 'es' ? '¿Qué programas educativos ofrecen?' : 'What educational programs do you offer?', a: lang === 'es' ? 'Ofrecemos Ruta Kids, Teatro para la Educación, Ruta Silver y nuestro Festival del Día Mundial del Teatro.' : 'We offer Ruta Kids, Theater for Education, Ruta Silver, and World Theater Day Festival.' },
+        { q: lang === 'es' ? '¿Cómo participo en audiciones?' : 'How do I audition?', a: lang === 'es' ? 'Visita nuestra sección de Audiciones para ver las oportunidades actuales y cómo aplicar.' : 'Visit our Auditions section to see current opportunities and how to apply.' },
+      ];
+      const [openIdx, setOpenIdx] = useState(null);
+      return (
+        <section id="faqs" style={{ padding: '7rem 1.5rem', background: '#0D0D0D' }}>
+          <div style={{ maxWidth: 800, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <p className="label">{t.label}</p>
+              <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+              {faqs.map((faq, i) => (
+                <div key={i} style={{ background: '#191919', padding: '1.8rem', cursor: 'pointer' }} onClick={() => setOpenIdx(openIdx === i ? null : i)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontFamily: 'Montserrat', fontWeight: 700, color: '#fff', fontSize: '1rem' }}>{faq.q}</h3>
+                    <span style={{ color: '#F2B705', fontSize: '1.5rem' }}>{openIdx === i ? '−' : '+'}</span>
+                  </div>
+                  {openIdx === i && (
+                    <p style={{ fontFamily: 'Montserrat', color: 'rgba(255,255,255,0.6)', marginTop: '1rem', lineHeight: 1.7 }}>{faq.a}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── TESTIMONIALS ── */
+    function Testimonials({ lang }) {
+      const t = TR[lang].testimonials;
+      const testimonials = [
+        { name: lang === 'es' ? 'María González' : 'Maria González', role: lang === 'es' ? 'Madre, Ruta Kids' : 'Parent, Ruta Kids', text: lang === 'es' ? 'Mi hijo ha ganado tanta confianza desde que comenzó en Ruta Kids. ¡El teatro ha transformado su vida!' : 'My son has gained so much confidence since starting Ruta Kids. Theater has transformed his life!' },
+        { name: lang === 'es' ? 'Juan López' : 'Juan López', role: lang === 'es' ? 'Participante, Ruta Silver' : 'Participant, Ruta Silver', text: lang === 'es' ? 'Ruta Silver me ha devuelto la alegría de vivir. Encontré una segunda familia en el escenario.' : 'Ruta Silver has given me back the joy of living. I found a second family on stage.' },
+        { name: lang === 'es' ? 'Laura Martínez' : 'Laura Martinez', role: lang === 'es' ? 'Educadora' : 'Educator', text: lang === 'es' ? 'Los programas de Ruta Teatral en nuestra escuela han sido increíbles. Nuestros estudiantes están más comprometidos que nunca.' : 'Ruta Teatral\'s programs in our school have been amazing. Our students are more engaged than ever.' },
+      ];
+      return (
+        <section id="testimonials" style={{ padding: '7rem 1.5rem', background: '#111111' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <p className="label">{t.label}</p>
+              <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '2rem' }}>
+              {testimonials.map((testi, i) => (
+                <div key={i} style={{ background: '#191919', padding: '2rem', borderTop: '4px solid #8C1D40', borderRadius: '4px' }}>
+                  <p style={{ fontFamily: 'Montserrat', color: 'rgba(255,255,255,0.75)', fontSize: '0.95rem', lineHeight: 1.8, marginBottom: '1.5rem', fontStyle: 'italic' }}>"{testi.text}"</p>
+                  <div>
+                    <p style={{ fontFamily: 'Anton', color: '#fff', fontSize: '1rem', marginBottom: '0.3rem' }}>{testi.name}</p>
+                    <p style={{ fontFamily: 'Montserrat', color: '#F2B705', fontSize: '0.8rem' }}>{testi.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── PRESS ── */
+    function Press({ lang }) {
+      const t = TR[lang].press;
+      const outlets = [
+        { name: 'Miami Herald',         icon: '📰' },
+        { name: 'El Nuevo Herald',      icon: '📰' },
+        { name: 'Univision',            icon: '📺' },
+        { name: 'Telemundo 51',         icon: '📺' },
+        { name: 'Diario Las Américas',  icon: '📰' },
+        { name: 'Sun Sentinel',         icon: '📰' },
+      ];
+      return (
+        <section id="press" style={{ padding: '7rem 1.5rem', background: '#0D0D0D' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <p className="label">{t.label}</p>
+              <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+            </div>
+
+            {/* Featured quotes */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '1.5rem', marginBottom: '4rem' }}
+              className="grid-3">
+              {t.quotes.map((q, i) => (
+                <div key={i} style={{ background: '#191919', padding: '2.5rem', borderLeft: '4px solid #8C1D40', position: 'relative' }}>
+                  <div style={{ fontFamily: 'Anton', fontSize: '5rem', color: 'rgba(140,29,64,0.15)', lineHeight: 0.8, position: 'absolute', top: '1.5rem', left: '2rem', userSelect: 'none' }}>"</div>
+                  <p style={{ fontFamily: 'Montserrat', fontWeight: 300, fontSize: '1rem', color: 'rgba(255,255,255,0.82)', lineHeight: 1.85, fontStyle: 'italic', marginBottom: '1.5rem', position: 'relative', zIndex: 1 }}>{q.text}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontFamily: 'Anton', fontSize: '0.95rem', color: '#F2B705', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{q.outlet}</span>
+                    <span style={{ fontFamily: 'Montserrat', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>{q.date}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Media outlet logos */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '3rem' }}>
+              <p style={{ textAlign: 'center', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.62rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '2rem' }}>
+                {lang === 'es' ? 'MENCIONADOS EN' : 'AS SEEN IN'}
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', alignItems: 'center' }}>
+                {outlets.map((o, i) => (
+                  <div key={i}
+                    style={{ background: '#191919', padding: '0.9rem 1.8rem', cursor: 'pointer', transition: 'all 0.25s', border: '1px solid rgba(255,255,255,0.04)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#222'; e.currentTarget.style.borderColor = 'rgba(242,183,5,0.25)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#191919'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)'; }}>
+                    <span style={{ fontFamily: 'Anton', fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.06em', textTransform: 'uppercase', userSelect: 'none' }}>{o.icon} {o.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── MAP SECTION ── */
+    function MapSection({ lang }) {
+      const t = TR[lang].map;
+      return (
+        <section id="map" style={{ padding: '7rem 1.5rem', background: '#111111' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }} className="about-grid">
+              {/* Info */}
+              <div>
+                <p className="label line-accent">{t.label}</p>
+                <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', margin: '0.5rem 0 2rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', marginBottom: '2.5rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ background: '#8C1D40', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <MapPin size={18} color="#F2B705" />
+                    </div>
+                    <div>
+                      <p style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#F2B705', marginBottom: '0.3rem' }}>{lang === 'es' ? 'Dirección' : 'Address'}</p>
+                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{t.address}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ background: '#8C1D40', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Phone size={18} color="#F2B705" />
+                    </div>
+                    <div>
+                      <p style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#F2B705', marginBottom: '0.3rem' }}>{lang === 'es' ? 'Teléfono' : 'Phone'}</p>
+                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)' }}>(786) 529-2181</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ background: '#8C1D40', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Calendar size={18} color="#F2B705" />
+                    </div>
+                    <div>
+                      <p style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#F2B705', marginBottom: '0.3rem' }}>{lang === 'es' ? 'Horario de taquilla' : 'Box Office Hours'}</p>
+                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{lang === 'es' ? 'Mar–Sáb: 10AM – 6PM' : 'Tue–Sat: 10AM – 6PM'}</p>
+                    </div>
+                  </div>
+                </div>
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.address)}`}
+                  target="_blank" rel="noreferrer" className="btn-yellow">
+                  {t.directions}
+                </a>
+              </div>
+
+              {/* Map embed */}
+              <div style={{ position: 'relative', overflow: 'hidden', height: 420, border: '1px solid rgba(242,183,5,0.2)' }}>
+                <iframe
+                  title="Ruta Teatral location"
+                  src="https://maps.google.com/maps?q=401+SW+8th+St,+Miami,+FL+33130&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                  width="100%" height="100%"
+                  style={{ border: 0, display: 'block', filter: 'grayscale(30%) invert(5%)' }}
+                  allowFullScreen loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade" />
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── SPONSORS ── */
+    function Sponsors({ lang }) {
+      const t = TR[lang].sponsors;
+      const sponsors = ['Sponsor 1', 'Sponsor 2', 'Sponsor 3', 'Sponsor 4', 'Sponsor 5', 'Sponsor 6'];
+      return (
+        <section id="sponsors" style={{ padding: '7rem 1.5rem', background: '#0D0D0D' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <p className="label">{t.label}</p>
+              <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: '2rem', alignItems: 'center' }}>
+              {sponsors.map((sponsor, i) => (
+                <div key={i} style={{ background: '#191919', height: 120, borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <p style={{ fontFamily: 'Montserrat', fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', textAlign: 'center' }}>{sponsor}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── CONTACT FORM ── */
+    function ContactForm({ lang }) {
+      const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+      const [sent, setSent] = useState(false);
+      const t = TR[lang].contactForm;
+      const handleSubmit = (e) => { e.preventDefault(); setSent(true); setTimeout(() => setSent(false), 3000); };
+      return (
+        <section id="contact-form" style={{ padding: '7rem 1.5rem', background: '#111111', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <div style={{ maxWidth: 600, margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+              <p className="label">{t.label}</p>
+              <h2 style={{ fontFamily: 'Anton', fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', color: '#F2B705', textTransform: 'uppercase', lineHeight: 1, margin: '0.6rem 0 1rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+            </div>
+            {sent ? (
+              <div style={{ textAlign: 'center', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '1.1rem', color: '#F2B705', padding: '2rem' }}>✓ {lang === 'es' ? 'Gracias por tu mensaje. Nos pondremos en contacto pronto.' : 'Thank you! We\'ll be in touch soon.'}</div>
+            ) : (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                <input type="text" placeholder={t.name} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required
+                  style={{ padding: '1rem 1.2rem', background: '#191919', border: '1px solid rgba(242,183,5,0.3)', color: '#fff', fontFamily: 'Montserrat', fontSize: '0.95rem', outline: 'none' }} />
+                <input type="email" placeholder={t.email} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required
+                  style={{ padding: '1rem 1.2rem', background: '#191919', border: '1px solid rgba(242,183,5,0.3)', color: '#fff', fontFamily: 'Montserrat', fontSize: '0.95rem', outline: 'none' }} />
+                <textarea placeholder={t.message} value={formData.message} onChange={e => setFormData({...formData, message: e.target.value})} required rows={5}
+                  style={{ padding: '1rem 1.2rem', background: '#191919', border: '1px solid rgba(242,183,5,0.3)', color: '#fff', fontFamily: 'Montserrat', fontSize: '0.95rem', outline: 'none', resize: 'none' }} />
+                <button type="submit" className="btn-yellow" style={{ alignSelf: 'center', marginTop: '1rem' }}>{t.send}</button>
+              </form>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    /* ── BLOG ── */
+    function Blog({ lang }) {
+      const t = TR[lang].blog;
+      const [selectedArticle, setSelectedArticle] = useState(null);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [selectedCategory, setSelectedCategory] = useState(null);
+
+      const filteredArticles = t.items.filter(article => {
+        const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              article.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = !selectedCategory || article.cat === selectedCategory;
+        return matchesSearch && matchesCategory;
+      });
+
+      const recentPosts = t.items.slice(0, 3);
+
+      if (selectedArticle) {
+        return (
+          <section id="blog" style={{ padding: '7rem 1.5rem', background: '#111111', minHeight: '100vh' }}>
+            <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+              {/* Back Button */}
+              <button onClick={() => setSelectedArticle(null)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: '#F2B705', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: '2rem' }}>
+                <ChevronLeft size={16} /> {t.backBtn}
+              </button>
+
+              <div className="blog-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '3rem', alignItems: 'flex-start' }}>
+                {/* Article Content */}
+                <article>
+                  {/* Featured Image */}
+                  <div style={{ marginBottom: '3rem', overflow: 'hidden', borderRadius: '4px' }}>
+                    <img src={selectedArticle.img} alt={selectedArticle.title}
+                      style={{ width: '100%', height: 420, objectFit: 'cover', display: 'block' }} />
+                  </div>
+
+                  {/* Article Header */}
+                  <div style={{ marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.2rem' }}>
+                      <span className="tag-pill">{selectedArticle.cat}</span>
+                    </div>
+                    <h1 style={{ fontFamily: 'Anton', fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)', color: '#fff', textTransform: 'uppercase', lineHeight: 1.2, marginBottom: '1.5rem' }}>
+                      {selectedArticle.title}
+                    </h1>
+
+                    {/* Meta Information */}
+                    <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'Montserrat', borderTop: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', paddingBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <User size={14} color="#F2B705" />
+                        <span style={{ fontWeight: 600 }}>{selectedArticle.author}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <Calendar size={14} color="#F2B705" />
+                        <span>{selectedArticle.date}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Article Body */}
+                  <div style={{ marginBottom: '3rem' }}>
+                    {selectedArticle.content.split('\n\n').map((paragraph, i) => (
+                      <p key={i} style={{
+                        fontFamily: 'Montserrat', fontSize: '1rem', color: 'rgba(255,255,255,0.75)',
+                        lineHeight: 1.85, marginBottom: '1.8rem'
+                      }}>
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+
+                  {/* Share Section */}
+                  <div style={{ background: '#191919', padding: '2rem', borderTop: '2px solid #8C1D40', borderBottom: '2px solid #8C1D40' }}>
+                    <p style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.75rem', color: '#F2B705', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '1rem' }}>{t.shareLabel}</p>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      {[
+                        { icon: <Facebook size={18} />, label: 'Facebook' },
+                        { icon: <Instagram size={18} />, label: 'Instagram' },
+                        { icon: <Music size={18} />, label: 'Share' },
+                      ].map((s, i) => (
+                        <a key={i} href="#" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, background: 'rgba(242,183,5,0.1)', color: '#F2B705', borderRadius: '50%', transition: 'all 0.2s', cursor: 'pointer' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#8C1D40'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(242,183,5,0.1)'; }}>
+                          {s.icon}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </article>
+
+                {/* Sidebar */}
+                <aside className="blog-sidebar" style={{ position: 'sticky', top: '100px' }}>
+                  {/* Search */}
+                  <div style={{ marginBottom: '2rem' }}>
+                    <input type="text" placeholder={t.sidebarSearch} value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%', padding: '0.85rem 1rem', background: '#191919', border: '1px solid rgba(242,183,5,0.3)',
+                        color: '#fff', fontFamily: 'Montserrat', fontSize: '0.9rem', outline: 'none', transition: 'border-color 0.2s'
+                      }}
+                      onFocus={e => e.currentTarget.style.borderColor = '#F2B705'}
+                      onBlur={e => e.currentTarget.style.borderColor = 'rgba(242,183,5,0.3)'} />
+                  </div>
+
+                  {/* Categories */}
+                  <div style={{ background: '#191919', padding: '1.5rem', marginBottom: '2rem' }}>
+                    <h4 style={{ fontFamily: 'Anton', fontSize: '0.95rem', color: '#F2B705', textTransform: 'uppercase', marginBottom: '1rem', lineHeight: 1 }}>{t.sidebarCategories}</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <button onClick={() => setSelectedCategory(null)}
+                        style={{
+                          background: !selectedCategory ? '#8C1D40' : 'transparent', color: '#fff',
+                          border: 'none', padding: '0.6rem 0.9rem', textAlign: 'left', cursor: 'pointer',
+                          fontFamily: 'Montserrat', fontSize: '0.8rem', fontWeight: 500, transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={e => { if (!selectedCategory) return; e.currentTarget.style.background = 'rgba(140,29,64,0.3)'; }}
+                        onMouseLeave={e => { if (!selectedCategory) return; e.currentTarget.style.background = 'transparent'; }}>
+                        {t.sidebarAll}
+                      </button>
+                      {t.categories.map(cat => (
+                        <button key={cat} onClick={() => setSelectedCategory(cat)}
+                          style={{
+                            background: selectedCategory === cat ? '#8C1D40' : 'transparent', color: '#fff',
+                            border: 'none', padding: '0.6rem 0.9rem', textAlign: 'left', cursor: 'pointer',
+                            fontFamily: 'Montserrat', fontSize: '0.8rem', fontWeight: 500, transition: 'background 0.2s'
+                          }}
+                          onMouseEnter={e => { if (selectedCategory === cat) return; e.currentTarget.style.background = 'rgba(140,29,64,0.3)'; }}
+                          onMouseLeave={e => { if (selectedCategory === cat) return; e.currentTarget.style.background = 'transparent'; }}>
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recent Posts */}
+                  <div style={{ background: '#191919', padding: '1.5rem', marginBottom: '2rem' }}>
+                    <h4 style={{ fontFamily: 'Anton', fontSize: '0.95rem', color: '#F2B705', textTransform: 'uppercase', marginBottom: '1rem', lineHeight: 1 }}>{t.sidebarRecent}</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {recentPosts.map(post => (
+                        <button key={post.id} onClick={() => setSelectedArticle(post)}
+                          style={{
+                            background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', padding: '0.8rem 0',
+                            borderBottom: '1px solid rgba(255,255,255,0.1)', transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.paddingLeft = '0.5rem'; e.currentTarget.style.color = '#F2B705'; }}
+                          onMouseLeave={e => { e.currentTarget.style.paddingLeft = '0'; e.currentTarget.style.color = 'inherit'; }}>
+                          <div style={{ fontFamily: 'Montserrat', fontSize: '0.75rem', color: '#F2B705', marginBottom: '0.3rem' }}>{post.cat}</div>
+                          <div style={{ fontFamily: 'Anton', fontSize: '0.9rem', color: '#fff', lineHeight: 1.2 }}>{post.title}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Comments Section */}
+                  <div style={{ background: '#191919', padding: '1.5rem' }}>
+                    <h4 style={{ fontFamily: 'Anton', fontSize: '0.95rem', color: '#F2B705', textTransform: 'uppercase', marginBottom: '1rem', lineHeight: 1 }}>{t.sidebarComments}</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <textarea placeholder={t.sidebarCommentPlaceholder} style={{
+                        width: '100%', padding: '0.8rem', background: '#111111', border: '1px solid rgba(242,183,5,0.2)',
+                        color: '#fff', fontFamily: 'Montserrat', fontSize: '0.8rem', outline: 'none', resize: 'vertical',
+                        minHeight: '80px', transition: 'border-color 0.2s'
+                      }}
+                        onFocus={e => e.currentTarget.style.borderColor = '#F2B705'}
+                        onBlur={e => e.currentTarget.style.borderColor = 'rgba(242,183,5,0.2)'} />
+                      <button style={{
+                        background: '#8C1D40', color: '#fff', border: 'none', padding: '0.6rem 1rem',
+                        fontFamily: 'Anton', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+                        cursor: 'pointer', transition: 'background 0.2s', alignSelf: 'flex-start'
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#6B1530'}
+                        onMouseLeave={e => e.currentTarget.style.background = '#8C1D40'}>
+                        {t.sidebarCommentBtn}
+                      </button>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      const featured = filteredArticles[0];
+      const rest = filteredArticles.slice(1);
+
+      return (
+        <section id="blog" style={{ padding: '7rem 1.5rem', background: '#111111' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+              <p className="label">{t.label}</p>
+              <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+            </div>
+
+            {/* Search + Category Filters */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.2rem', marginBottom: '3.5rem' }}>
+              <input type="text" placeholder={t.searchPlaceholder} value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ width: '100%', maxWidth: 520, padding: '0.9rem 1.2rem', background: '#191919', border: '1px solid rgba(242,183,5,0.3)', color: '#fff', fontFamily: 'Montserrat', fontSize: '0.9rem', outline: 'none', transition: 'border-color 0.2s' }}
+                onFocus={e => e.currentTarget.style.borderColor = '#F2B705'}
+                onBlur={e => e.currentTarget.style.borderColor = 'rgba(242,183,5,0.3)'} />
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {[null, ...t.categories].map((cat, i) => (
+                  <button key={i} onClick={() => setSelectedCategory(cat)}
+                    style={{ padding: '0.4rem 1rem', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: selectedCategory === cat ? '#8C1D40' : '#191919', color: selectedCategory === cat ? '#fff' : 'rgba(255,255,255,0.5)' }}>
+                    {cat === null ? t.allCategories : cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredArticles.length === 0 ? (
+              <p style={{ textAlign: 'center', fontFamily: 'Montserrat', color: 'rgba(255,255,255,0.4)', padding: '4rem 0' }}>{t.noResults}</p>
+            ) : (
+              <>
+                {/* Featured Article */}
+                {featured && (
+                  <article className="blog-featured" onClick={() => setSelectedArticle(featured)}
+                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', marginBottom: '2.5rem', cursor: 'pointer', background: '#191919', overflow: 'hidden', borderBottom: '4px solid #8C1D40', transition: 'transform 0.3s, box-shadow 0.3s' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 20px 48px rgba(0,0,0,0.5)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                    <div className="blog-featured-img" style={{ overflow: 'hidden', height: 400 }}>
+                      <img src={featured.img} alt={featured.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.5s' }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'} />
+                    </div>
+                    <div style={{ padding: '3rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.2rem', flexWrap: 'wrap' }}>
+                        <span className="tag-pill" style={{ background: '#F2B705', color: '#0D0D0D' }}>{t.featured}</span>
+                        <span className="tag-pill">{featured.cat}</span>
+                      </div>
+                      <h3 style={{ fontFamily: 'Anton', fontSize: 'clamp(1.4rem, 2.5vw, 2.2rem)', color: '#fff', textTransform: 'uppercase', lineHeight: 1.2, marginBottom: '1rem' }}>{featured.title}</h3>
+                      <p style={{ fontFamily: 'Montserrat', fontSize: '0.95rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.75, marginBottom: '1.5rem' }}>{featured.excerpt}</p>
+                      <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', fontFamily: 'Montserrat', marginBottom: '1.8rem', flexWrap: 'wrap' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}><Calendar size={13} />{featured.date}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}><User size={13} />{featured.author}</span>
+                        <span>~{Math.ceil(featured.content.split(' ').length / 200)} {t.readTime}</span>
+                      </div>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#F2B705' }}>
+                        {t.readMore} <ArrowRight size={14} />
+                      </span>
+                    </div>
+                  </article>
+                )}
+
+                {/* Rest of articles */}
+                {rest.length > 0 && (
+                  <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '2rem' }}>
+                    {rest.map((article, i) => (
+                      <article key={i} className="card" onClick={() => setSelectedArticle(article)}
+                        style={{ background: '#191919', overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
+                        <div className="img-overlay" style={{ height: 220, position: 'relative' }}>
+                          <img src={article.img} alt={article.title} loading="lazy"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          <div className="overlay">
+                            <span style={{ fontFamily: 'Anton', fontSize: '0.9rem', letterSpacing: '0.1em', color: '#fff', border: '2px solid #fff', padding: '0.6rem 1.2rem' }}>{t.readMore}</span>
+                          </div>
+                        </div>
+                        <div style={{ padding: '1.6rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                          <span className="tag-pill" style={{ marginBottom: '0.8rem', alignSelf: 'flex-start' }}>{article.cat}</span>
+                          <h3 style={{ fontFamily: 'Anton', fontSize: '1.1rem', color: '#fff', textTransform: 'uppercase', lineHeight: 1.3, marginBottom: '0.7rem' }}>{article.title}</h3>
+                          <p style={{ fontFamily: 'Montserrat', fontSize: '0.83rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.65, marginBottom: '1.2rem', flex: 1 }}>{article.excerpt}</p>
+                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', fontFamily: 'Montserrat', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1rem', flexWrap: 'wrap' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Calendar size={11} />{article.date}</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><User size={11} />{article.author}</span>
+                            <span>~{Math.ceil(article.content.split(' ').length / 200)} {t.readTime}</span>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    /* ── AUDITIONS BANNER ── */
+    function AuditionsBanner({ lang }) {
+      const t = TR[lang].auditions;
+      return (
+        <section id="auditions" style={{ background: '#8C1D40', padding: '5rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(https://images.unsplash.com/photo-1503095396549-807759245b35?w=1200&q=60)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.1 }} />
+          <div style={{ position: 'relative', zIndex: 1, maxWidth: 1400, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2rem' }}>
+            <div>
+              <p className="label" style={{ color: 'rgba(255,255,255,0.6)' }}>{t.label}</p>
+              <h2 style={{ fontFamily: 'Anton', fontSize: 'clamp(2rem, 4vw, 3.2rem)', color: '#F2B705', textTransform: 'uppercase', lineHeight: 1, marginTop: '0.4rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+              <p style={{ fontFamily: 'Montserrat', fontWeight: 300, color: 'rgba(255,255,255,0.8)', marginTop: '1rem', fontSize: '1rem', maxWidth: 480, lineHeight: 1.7 }}>{t.sub}</p>
+            </div>
+            <a href="#contact" style={{ background: '#F2B705', color: '#0D0D0D', fontFamily: 'Anton', fontSize: '0.85rem', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '1.1rem 2.5rem', textDecoration: 'none', display: 'inline-block', transition: 'background 0.2s, transform 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F2C94C'; e.currentTarget.style.transform = 'scale(1.03)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#F2B705'; e.currentTarget.style.transform = 'scale(1)'; }}>
+              {t.cta}
+            </a>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── COMMUNITY ── */
+    function Community({ lang }) {
+      const t = TR[lang].community;
+      return (
+        <section id="community" style={{ padding: '7rem 1.5rem', background: '#0D0D0D' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <p className="label">{t.label}</p>
+                <h2 className="section-title" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', marginTop: '0.5rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+              </div>
+              <a href="https://instagram.com/rutateatralmiami" target="_blank" rel="noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.12em', color: '#F2B705', textDecoration: 'none', textTransform: 'uppercase' }}>
+                <Instagram size={15} /> @rutateatralmiami
+              </a>
+            </div>
+            <div className="insta-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.75rem', marginBottom: '4rem' }}>
+              {INSTA_IMGS.map((src, i) => (
+                <div key={i} className="img-overlay" style={{ aspectRatio: '1', cursor: 'pointer' }}>
+                  <img src={src} alt={`Community ${i + 1}`} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <div className="overlay"><Instagram size={28} color="#fff" /></div>
+                </div>
+              ))}
+            </div>
+            <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1.5rem' }}>
+              {t.news.map((n, i) => (
+                <div key={i} className="card" style={{ background: '#191919', overflow: 'hidden' }}>
+                  <div className="img-overlay" style={{ height: 200 }}>
+                    <img src={NEWS_IMGS[i]} alt={n.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                  <div style={{ padding: '1.4rem' }}>
+                    <p style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#8C1D40', marginBottom: '0.6rem' }}>{n.cat}</p>
+                    <h4 style={{ fontFamily: 'Anton', fontSize: '1.1rem', color: '#fff', textTransform: 'uppercase', lineHeight: 1.25, marginBottom: '0.75rem' }}>{n.title}</h4>
+                    <p style={{ fontFamily: 'Montserrat', fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.05em' }}>{n.date}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── NEWSLETTER ── */
+    function Newsletter({ lang }) {
+      const [email, setEmail] = useState('');
+      const [sent, setSent] = useState(false);
+      const t = TR[lang].newsletter;
+      return (
+        <section style={{ padding: '6rem 1.5rem', background: '#111111', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <div style={{ maxWidth: 660, margin: '0 auto', textAlign: 'center' }}>
+            <p className="label">{t.label}</p>
+            <h2 style={{ fontFamily: 'Anton', fontSize: 'clamp(2rem, 4.5vw, 3.5rem)', color: '#F2B705', textTransform: 'uppercase', lineHeight: 1, margin: '0.6rem 0 1rem', whiteSpace: 'pre-line' }}>{t.title}</h2>
+            <p style={{ fontFamily: 'Montserrat', fontWeight: 300, color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, marginBottom: '2.5rem', fontSize: '1rem' }}>{t.sub}</p>
+            {sent ? (
+              <div style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '1.1rem', color: '#F2B705' }}>{t.thanks}</div>
+            ) : (
+              <form className="form-row" onSubmit={e => { e.preventDefault(); setSent(true); }} style={{ display: 'flex', gap: '0.5rem', maxWidth: 520, margin: '0 auto' }}>
+                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder={t.placeholder} className="form-input" />
+                <button type="submit" className="btn-yellow" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{t.cta}</button>
+              </form>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    /* ── FOOTER ── */
+    function Footer({ lang }) {
+      const t = TR[lang];
+      const ft = t.footer;
+      const ct = t.contact;
+      return (
+        <footer id="contact" style={{ background: '#080808', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <div style={{ background: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.04)', padding: '3.5rem 1.5rem' }}>
+            <div className="footer-grid" style={{ maxWidth: 1400, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '3rem' }}>
+              <div>
+                <p style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#8C1D40', marginBottom: '1rem' }}>{ct.location}</p>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <MapPin size={15} color="#F2B705" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <span style={{ fontFamily: 'Montserrat', fontSize: '0.9rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.7 }}>401 SW 8th St, Miami, FL 33130<br />South Florida, USA</span>
+                </div>
+              </div>
+              <div>
+                <p style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#8C1D40', marginBottom: '1rem' }}>{ct.contact}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <a href="tel:7865292181" style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', fontFamily: 'Montserrat', fontSize: '0.9rem', color: 'rgba(255,255,255,0.65)', textDecoration: 'none' }}>
+                    <Phone size={14} color="#F2B705" /> (786) 529-2181
+                  </a>
+                  <a href="https://rutateatral.org" target="_blank" rel="noreferrer" style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', fontFamily: 'Montserrat', fontSize: '0.9rem', color: 'rgba(255,255,255,0.65)', textDecoration: 'none' }}>
+                    <Globe size={14} color="#F2B705" /> rutateatral.org
+                  </a>
+                </div>
+              </div>
+              <div>
+                <p style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#8C1D40', marginBottom: '1rem' }}>{ct.follow}</p>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  {[
+                    { icon: <Instagram size={18} />, href: 'https://instagram.com/rutateatralmiami' },
+                    { icon: <Facebook size={18} />, href: 'https://facebook.com/rutateatralmiami' },
+                    { icon: <Youtube size={18} />, href: 'https://youtube.com/@rutateatralmiami' },
+                  ].map((s, i) => (
+                    <a key={i} href={s.href} target="_blank" rel="noreferrer" className="social-icon">{s.icon}</a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: '3.5rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="footer-nav-grid" style={{ maxWidth: 1400, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '2.5rem' }}>
+              {ft.cols.map(col => (
+                <div key={col.title}>
+                  <p style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#F2B705', marginBottom: '1.2rem' }}>{col.title}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                    {col.links.map(l => <a key={l} href="#" className="footer-link">{l}</a>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: '1.5rem', maxWidth: 1400, margin: '0 auto' }}>
+            <div className="footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <img src={LOGO} alt="Ruta Teatral" style={{ height: 42, width: 'auto', objectFit: 'contain' }} />
+              <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <a href="#" className="footer-link">{ft.privacy}</a>
+                <a href="#" className="footer-link">{ft.terms}</a>
+                <a href="#" className="footer-link">{ft.access}</a>
+              </div>
+              <p style={{ fontFamily: 'Montserrat', fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)' }}>{ft.copy}</p>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── STICKY CTA ── */
+    function StickyCTA({ lang }) {
+      const [vis, setVis] = useState(false);
+      const t = TR[lang];
+      useEffect(() => {
+        const fn = () => setVis(window.scrollY > 400);
+        window.addEventListener('scroll', fn);
+        return () => window.removeEventListener('scroll', fn);
+      }, []);
+      if (!vis) return null;
+      return (
+        <a id="tickets" href="#productions" className="btn-yellow sticky-ticket"
+          style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 800, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', padding: '0.9rem 1.5rem' }}>
+          {t.cta}
+        </a>
+      );
+    }
+
+    /* ── COOKIE BANNER ── */
+    function CookieBanner({ lang }) {
+      const [ok, setOk] = useState(false);
+      const t = TR[lang].cookie;
+      if (ok) return null;
+      return (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 850, background: '#191919', borderTop: '2px solid #8C1D40', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <p style={{ fontFamily: 'Montserrat', fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', margin: 0, lineHeight: 1.5 }}>
+            {t.text} <a href="#" style={{ color: '#F2B705', textDecoration: 'none' }}>{t.link}</a>
+          </p>
+          <button onClick={() => setOk(true)} className="btn-yellow" style={{ border: 'none', fontSize: '0.72rem', padding: '0.6rem 1.4rem', flexShrink: 0 }}>{t.cta}</button>
+        </div>
+      );
+    }
+
+    /* ── APP ── */
+    function App() {
+      const [lang, setLang] = useState('es');
+      return (
+        <>
+          <Header lang={lang} setLang={setLang} />
+          <main>
+            <Hero lang={lang} />
+            <StatsBar lang={lang} />
+            <About lang={lang} />
+            <Productions lang={lang} />
+            <Programs lang={lang} />
+            <SearchBar lang={lang} />
+            <EventsCalendar lang={lang} />
+            <Staff lang={lang} />
+            <Gallery lang={lang} />
+            <Press lang={lang} />
+            <Testimonials lang={lang} />
+            <Sponsors lang={lang} />
+            <FAQs lang={lang} />
+            <ContactForm lang={lang} />
+            <MapSection lang={lang} />
+            <Blog lang={lang} />
+            <AuditionsBanner lang={lang} />
+            <Community lang={lang} />
+            <Newsletter lang={lang} />
+          </main>
+          <Footer lang={lang} />
+          <StickyCTA lang={lang} />
+          <CookieBanner lang={lang} />
+        </>
+      );
+    }
+
+    createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
