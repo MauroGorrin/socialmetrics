@@ -1,0 +1,8 @@
+onlyBuiltDependencies:
+  - esbuild
+  - "@biomejs/biome"
+  - "@tailwindcss/oxide"
+
+allowBuilds:
+  esbuild: true
+  puppeteer: false

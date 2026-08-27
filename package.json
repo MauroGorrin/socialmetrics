@@ -1,0 +1,53 @@
+{
+  "name": "reportes-app",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=11"
+  },
+  "packageManager": "pnpm@11.17.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint ./src",
+    "format": "biome format ./src",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx src/server/db/seed.ts",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zod": "^4",
+    "drizzle-orm": "0.45.2",
+    "@supabase/supabase-js": "^2",
+    "@supabase/ssr": "^0.12.5",
+    "@tanstack/react-query": "^5",
+    "recharts": "^3",
+    "puppeteer": "^25",
+    "resend": "^6"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "@types/node": "^20.16.5",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@biomejs/biome": "^2",
+    "vitest": "^4",
+    "@vitejs/plugin-react": "^4",
+    "@playwright/test": "^1",
+    "drizzle-kit": "0.31.10",
+    "tsx": "^4",
+    "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4",
+    "postcss": "^8"
+  }
+}

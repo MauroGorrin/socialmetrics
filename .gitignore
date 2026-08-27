@@ -14,7 +14,6 @@ dist/
 coverage/
 playwright-report/
 test-results/
-next-env.d.ts
 
 # Pre-existing marketing workspace (not part of the app)
 scrapling-env/
