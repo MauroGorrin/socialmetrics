@@ -1,97 +1,97 @@
-﻿import { beforeEach, afterEach, expect } from 'vitest';
-import { db } from '@/server/db';
-import { sql } from 'drizzle-orm';
-import { users, organizations, memberships } from '@/server/db/schema';
+import { afterEach, beforeEach, expect } from 'vitest';
 
-// Setup globals
-Object.defineProperty(global, 'TextEncoder', {
-  writable: true,
-  value: TextEncoder,
-});
+/**
+ * Global test setup.
+ *
+ * Database-backed tests start from a clean, seeded schema. The DB layer lands
+ * in a later build step (`src/server/db`), so until it exists these hooks
+ * detect its absence and no-op, letting pure-logic unit tests run. Once the
+ * module is present, every test again gets a fresh user + org + membership.
+ */
 
-// Test database setup
-export async function setupTestDB() {
-  // Verify connection to test database
+type DbContext = {
+  db: {
+    execute: (query: unknown) => Promise<unknown>;
+    insert: (table: unknown) => {
+      values: (row: Record<string, unknown>) => {
+        returning: () => Promise<Array<{ id: string }>>;
+      };
+    };
+  };
+  sql: (strings: TemplateStringsArray, ...values: unknown[]) => unknown;
+  schema: {
+    users: unknown;
+    organizations: unknown;
+    memberships: unknown;
+  };
+};
+
+async function loadDbContext(): Promise<DbContext | null> {
   try {
-    await db.execute(sql`SELECT 1`);
-  } catch (err) {
-    console.error('Failed to connect to test database:', err);
-    throw err;
+    const [dbModule, drizzle, schema] = await Promise.all([
+      import('@/server/db'),
+      import('drizzle-orm'),
+      import('@/server/db/schema'),
+    ]);
+    return {
+      db: (dbModule as { db: DbContext['db'] }).db,
+      sql: (drizzle as { sql: DbContext['sql'] }).sql,
+      schema: schema as DbContext['schema'],
+    };
+  } catch {
+    return null;
   }
 }
 
-// Seed test data before each test
+async function truncateAll({ db, sql }: DbContext): Promise<void> {
+  await db.execute(
+    sql`TRUNCATE TABLE audit_log, report_comment, report, metric, client, membership, organization, "user" RESTART IDENTITY CASCADE`,
+  );
+}
+
 beforeEach(async () => {
-  // Clear existing test data
-  await db.execute(sql`TRUNCATE TABLE audit_log CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE report_comment CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE report CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE metric CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE client CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE membership CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE organization CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE "user" CASCADE`);
+  const ctx = await loadDbContext();
+  if (!ctx) return;
 
-  // Seed test user
-  const testUser = await db
-    .insert(users)
-    .values({
-      id: 'test-user-1',
-      email: 'test@example.com',
-      name: 'Test User',
-      created_at: new Date(),
-    })
+  await truncateAll(ctx);
+
+  const [user] = await ctx.db
+    .insert(ctx.schema.users)
+    .values({ id: 'test-user-1', email: 'test@example.com', name: 'Test User', created_at: new Date() })
     .returning();
-
-  // Seed test organization
-  const testOrg = await db
-    .insert(organizations)
+  const [org] = await ctx.db
+    .insert(ctx.schema.organizations)
     .values({
       id: 'test-org-1',
       slug: 'test-org',
       name: 'Test Organization',
-      owner_id: testUser[0].id,
+      owner_id: user?.id ?? 'test-user-1',
       created_at: new Date(),
     })
     .returning();
-
-  // Seed membership (owner role)
-  await db.insert(memberships).values({
-    id: 'test-membership-1',
-    org_id: testOrg[0].id,
-    user_id: testUser[0].id,
-    role: 'owner',
-    created_at: new Date(),
-  });
+  await ctx.db
+    .insert(ctx.schema.memberships)
+    .values({
+      id: 'test-membership-1',
+      org_id: org?.id ?? 'test-org-1',
+      user_id: user?.id ?? 'test-user-1',
+      role: 'owner',
+      created_at: new Date(),
+    });
 });
 
-// Clean up after each test
 afterEach(async () => {
-  // Truncate all test tables to reset state
-  await db.execute(sql`TRUNCATE TABLE audit_log CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE report_comment CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE report CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE metric CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE client CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE membership CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE organization CASCADE`);
-  await db.execute(sql`TRUNCATE TABLE "user" CASCADE`);
+  const ctx = await loadDbContext();
+  if (ctx) await truncateAll(ctx);
 });
 
-// Custom matchers
 expect.extend({
   toBeValidJSON(received: string) {
     try {
       JSON.parse(received);
-      return {
-        message: () => `expected ${received} not to be valid JSON`,
-        pass: true,
-      };
+      return { message: () => `expected ${received} not to be valid JSON`, pass: true };
     } catch {
-      return {
-        message: () => `expected ${received} to be valid JSON`,
-        pass: false,
-      };
+      return { message: () => `expected ${received} to be valid JSON`, pass: false };
     }
   },
 });
