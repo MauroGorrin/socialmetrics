@@ -2,6 +2,17 @@ import 'server-only';
 
 import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm';
 import { createAdminSupabase } from '@/lib/auth';
+import {
+  computeKpis,
+  isBaseMetric,
+  type Kpis,
+  type MetricKey,
+  monthLabel,
+  monthsEndingAt,
+  previousMonth,
+  shortMonthLabel,
+} from '@/lib/metrics';
+import type { ReportData } from '@/lib/report';
 import { db } from '@/server/db';
 import type { Report } from '@/server/db/schema';
 import {
@@ -121,12 +132,6 @@ export async function userIdForEmail(email: string): Promise<string | null> {
   return row?.id ?? null;
 }
 
-export type ReportClientMetrics = {
-  clientId: string;
-  clientName: string;
-  values: Record<string, number>;
-};
-
 /** First day of `periodMonth` (`YYYY-MM`) and of the following month, as ISO dates. */
 export function monthBounds(periodMonth: string): { from: string; to: string } {
   const [year, month] = periodMonth.split('-').map(Number);
@@ -135,15 +140,46 @@ export function monthBounds(periodMonth: string): { from: string; to: string } {
   return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 }
 
+/** Split summed-vs-averaged aggregate rows into the two buckets `computeKpis` wants. */
+function splitAggregates(
+  rows: Array<{ key: string; name: string; sum: string | null; avg: string | null }>,
+): Map<string, Kpis> {
+  const base = new Map<string, Partial<Record<MetricKey, number>>>();
+  const ratio = new Map<string, Partial<Record<MetricKey, number>>>();
+  const keys = new Set<string>();
+
+  for (const row of rows) {
+    keys.add(row.key);
+    if (isBaseMetric(row.name)) {
+      const bucket = base.get(row.key) ?? {};
+      bucket[row.name] = Number(row.sum ?? 0);
+      base.set(row.key, bucket);
+    } else {
+      const bucket = ratio.get(row.key) ?? {};
+      bucket[row.name as MetricKey] = Number(row.avg ?? 0);
+      ratio.set(row.key, bucket);
+    }
+  }
+
+  const out = new Map<string, Kpis>();
+  for (const key of keys) {
+    out.set(key, computeKpis(base.get(key) ?? {}, ratio.get(key) ?? {}));
+  }
+  return out;
+}
+
+export type ReportClientKpis = { clientId: string; clientName: string; kpis: Kpis };
+
 /**
- * Sum each metric per client for the given month. `clientIds` empty → every
- * active client in the org. Clients with no metrics still appear (all zeros).
+ * KPIs per client for one month. Base metrics are summed, ratio metrics
+ * (ctr/cpl/roas) are recomputed from those sums — never added. `clientIds`
+ * empty → every active client. Clients with no data still appear (all zeros).
  */
-export async function reportMetricsByClient(
+export async function clientKpisForMonth(
   orgId: string,
   clientIds: string[],
   periodMonth: string,
-): Promise<ReportClientMetrics[]> {
+): Promise<ReportClientKpis[]> {
   const activeClients = await db
     .select({ id: clients.id, name: clients.name })
     .from(clients)
@@ -154,13 +190,15 @@ export async function reportMetricsByClient(
     )
     .orderBy(clients.name);
 
-  const { from, to } = monthBounds(periodMonth);
+  if (activeClients.length === 0) return [];
 
+  const { from, to } = monthBounds(periodMonth);
   const rows = await db
     .select({
-      clientId: metrics.clientId,
+      key: metrics.clientId,
       name: metrics.metricName,
-      total: sql<string>`sum(${metrics.metricValue})`,
+      sum: sql<string>`sum(${metrics.metricValue})`,
+      avg: sql<string>`avg(${metrics.metricValue})`,
     })
     .from(metrics)
     .where(
@@ -168,26 +206,106 @@ export async function reportMetricsByClient(
         eq(metrics.orgId, orgId),
         gte(metrics.period, from),
         lt(metrics.period, to),
-        activeClients.length > 0
-          ? inArray(
-              metrics.clientId,
-              activeClients.map((c) => c.id),
-            )
-          : sql`false`,
+        inArray(
+          metrics.clientId,
+          activeClients.map((c) => c.id),
+        ),
       ),
     )
     .groupBy(metrics.clientId, metrics.metricName);
 
-  const byClient = new Map<string, Record<string, number>>();
-  for (const row of rows) {
-    const bucket = byClient.get(row.clientId) ?? {};
-    bucket[row.name] = Number(row.total ?? 0);
-    byClient.set(row.clientId, bucket);
-  }
-
+  const byClient = splitAggregates(rows);
   return activeClients.map((client) => ({
     clientId: client.id,
     clientName: client.name,
-    values: byClient.get(client.id) ?? {},
+    kpis: byClient.get(client.id) ?? computeKpis({}),
   }));
+}
+
+/** Combined org KPIs for each of the given months (`YYYY-MM`), keyed by month. */
+export async function orgKpisByMonth(
+  orgId: string,
+  clientIds: string[],
+  months: string[],
+): Promise<Record<string, Kpis>> {
+  if (months.length === 0) return {};
+  const from = monthBounds(months[0]).from;
+  const to = monthBounds(months[months.length - 1]).to;
+
+  const rows = await db
+    .select({
+      key: sql<string>`to_char(${metrics.period}, 'YYYY-MM')`,
+      name: metrics.metricName,
+      sum: sql<string>`sum(${metrics.metricValue})`,
+      avg: sql<string>`avg(${metrics.metricValue})`,
+    })
+    .from(metrics)
+    .where(
+      and(
+        eq(metrics.orgId, orgId),
+        gte(metrics.period, from),
+        lt(metrics.period, to),
+        clientIds.length > 0 ? inArray(metrics.clientId, clientIds) : undefined,
+      ),
+    )
+    .groupBy(sql`to_char(${metrics.period}, 'YYYY-MM')`, metrics.metricName);
+
+  const byMonth = splitAggregates(rows);
+  const out: Record<string, Kpis> = {};
+  for (const month of months) {
+    out[month] = byMonth.get(month) ?? computeKpis({});
+  }
+  return out;
+}
+
+const TREND_MONTHS = 6;
+
+/**
+ * Everything the report template needs for one `(org, month)`: this month's
+ * KPIs per client, the previous month for deltas, and a 6-month trend of the
+ * org totals. Callers pass the branding (a data URI for the PDF, a URL for the
+ * web views) and the footer line.
+ */
+export async function getReportData(input: {
+  orgId: string;
+  orgName: string;
+  clientIds: string[];
+  periodMonth: string;
+  generatedAt: string;
+  logoUrl?: string | null;
+  footer?: string | null;
+}): Promise<ReportData> {
+  const prevMonth = previousMonth(input.periodMonth);
+  const trendMonths = monthsEndingAt(input.periodMonth, TREND_MONTHS);
+
+  const [current, previous, monthly] = await Promise.all([
+    clientKpisForMonth(input.orgId, input.clientIds, input.periodMonth),
+    clientKpisForMonth(input.orgId, input.clientIds, prevMonth),
+    orgKpisByMonth(input.orgId, input.clientIds, trendMonths),
+  ]);
+
+  const prevByClient = new Map(previous.map((c) => [c.clientId, c.kpis]));
+  const clientRows = current.map((c) => ({
+    name: c.clientName,
+    kpis: c.kpis,
+    previous: prevByClient.get(c.clientId) ?? computeKpis({}),
+  }));
+
+  return {
+    orgName: input.orgName,
+    periodMonth: input.periodMonth,
+    periodLabel: monthLabel(input.periodMonth),
+    previousLabel: monthLabel(prevMonth),
+    generatedAt: input.generatedAt,
+    logoUrl: input.logoUrl ?? null,
+    footer: input.footer ?? null,
+    totals: monthly[input.periodMonth] ?? computeKpis({}),
+    previousTotals: monthly[prevMonth] ?? computeKpis({}),
+    clients: clientRows,
+    trend: trendMonths.map((month) => ({
+      month,
+      label: shortMonthLabel(month),
+      kpis: monthly[month] ?? computeKpis({}),
+    })),
+  };
 }

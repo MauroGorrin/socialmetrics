@@ -67,7 +67,12 @@ export function requireStep(n: number): OnboardingState {
   return state;
 }
 
-/** The 30 seed metric rows for a client: 6 metric names × 5 dates in the month. */
+/**
+ * The 30 seed metric rows for a client: 6 metric names × 5 dates in the month.
+ * Only base metrics (impressions/clicks/spend/conversions/conversion_value) plus
+ * CTR — the report computes CTR/CPL/ROAS from the base figures, so the demo
+ * report shows real derived KPIs, not placeholders.
+ */
 export function seedMetricRows(input: {
   orgId: string;
   clientId: string;
@@ -81,12 +86,12 @@ export function seedMetricRows(input: {
   metricValue: string;
   period: string;
 }> {
-  const names = ['impressions', 'clicks', 'spend', 'roas', 'ctr', 'cpl'];
+  const names = ['impressions', 'clicks', 'spend', 'conversions', 'conversion_value', 'ctr'];
   const days = [3, 9, 15, 21, 27];
   const rows: ReturnType<typeof seedMetricRows> = [];
   for (const [ni, name] of names.entries()) {
     for (const [di, day] of days.entries()) {
-      const base = [4200, 180, 95, 3.4, 4.1, 12][ni] ?? 100;
+      const base = [4200, 180, 95, 9, 380, 4.1][ni] ?? 100;
       rows.push({
         orgId: input.orgId,
         clientId: input.clientId,

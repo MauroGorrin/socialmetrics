@@ -3,11 +3,11 @@ import { notFound, redirect } from 'next/navigation';
 import { createShareAction, sendReportAction } from '@/app/[orgSlug]/reports/actions';
 import { CopyLinkButton } from '@/app/[orgSlug]/reports/[id]/copy-link-button';
 import { SendReportDialog } from '@/components/app/send-report-dialog';
-import { type ReportData, REPORT_METRICS, ReportTemplate } from '@/components/pdf/report-template';
+import { ReportTemplate } from '@/components/pdf/report-template';
 import { getCurrentUser } from '@/lib/auth';
 import { env } from '@/lib/env';
 import { getAccessibleOrg } from '@/server/queries/orgs';
-import { getReport, reportMetricsByClient, signedReportPdfUrl } from '@/server/queries/reports';
+import { getReport, getReportData, signedReportPdfUrl } from '@/server/queries/reports';
 
 const SITE_URL = env.SESSION_URL ?? 'http://localhost:3000';
 
@@ -27,27 +27,17 @@ export default async function ReportViewPage({
   const report = await getReport(access.org.id, params.id);
   if (!report) notFound();
 
-  const clientMetrics = await reportMetricsByClient(
-    access.org.id,
-    report.clientIds ?? [],
-    report.periodMonth,
-  );
-
-  const data: ReportData = {
+  const data = await getReportData({
+    orgId: access.org.id,
     orgName: access.org.name,
+    clientIds: report.clientIds ?? [],
     periodMonth: report.periodMonth,
     generatedAt: report.generatedAt
       ? report.generatedAt.toISOString().slice(0, 10)
       : 'sin generar',
     logoUrl: access.org.logoUrl,
     footer: access.org.footerText ?? access.org.name,
-    clients: clientMetrics.map((client) => ({
-      name: client.clientName,
-      values: Object.fromEntries(
-        REPORT_METRICS.map((metric) => [metric.key, client.values[metric.key] ?? 0]),
-      ) as ReportData['clients'][number]['values'],
-    })),
-  };
+  });
 
   const pdfUrl = report.pdfUrl ? await signedReportPdfUrl(report.pdfUrl) : null;
   const canManage = access.role === 'owner' || access.role === 'admin';

@@ -2,18 +2,14 @@ import 'server-only';
 
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import {
-  type ReportData,
-  REPORT_METRICS,
-  renderReportDocument,
-} from '@/components/pdf/report-template';
+import { renderReportDocument } from '@/components/pdf/report-template';
 import { createAdminSupabase } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
 import { env } from '@/lib/env';
 import { htmlToPdf } from '@/lib/pdf-generator';
 import { db } from '@/server/db';
 import { auditLogs, emailEvents, organizations, reports } from '@/server/db/schema';
-import { getReport, reportMetricsByClient } from '@/server/queries/reports';
+import { getReport, getReportData } from '@/server/queries/reports';
 
 const SITE_URL = env.SESSION_URL ?? 'http://localhost:3000';
 
@@ -27,26 +23,6 @@ const SITE_URL = env.SESSION_URL ?? 'http://localhost:3000';
 const STORAGE_BUCKET = 'reports';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
-
-function buildReportData(
-  branding: { orgName: string; logoDataUri: string | null; footer: string | null },
-  periodMonth: string,
-  clientMetrics: Awaited<ReturnType<typeof reportMetricsByClient>>,
-): ReportData {
-  return {
-    orgName: branding.orgName,
-    periodMonth,
-    generatedAt: new Date().toISOString().slice(0, 10),
-    logoUrl: branding.logoDataUri,
-    footer: branding.footer,
-    clients: clientMetrics.map((client) => ({
-      name: client.clientName,
-      values: Object.fromEntries(
-        REPORT_METRICS.map((metric) => [metric.key, client.values[metric.key] ?? 0]),
-      ) as ReportData['clients'][number]['values'],
-    })),
-  };
-}
 
 /** The org's logo as an inline `data:` URI (no network call in the PDF), or null. */
 async function logoDataUri(logoUrl: string | null): Promise<string | null> {
@@ -94,23 +70,16 @@ export async function generateReport(input: {
       .where(eq(organizations.id, input.orgId))
       .limit(1);
 
-    const clientMetrics = await reportMetricsByClient(
-      input.orgId,
-      clientIds ?? [],
-      input.periodMonth,
-    );
-    const html = renderReportDocument(
-      buildReportData(
-        {
-          orgName: input.orgName,
-          logoDataUri: await logoDataUri(org?.logoUrl ?? null),
-          footer: org?.footerText ?? null,
-        },
-        input.periodMonth,
-        clientMetrics,
-      ),
-    );
-    const pdf = await htmlToPdf(html);
+    const data = await getReportData({
+      orgId: input.orgId,
+      orgName: input.orgName,
+      clientIds: clientIds ?? [],
+      periodMonth: input.periodMonth,
+      generatedAt: new Date().toISOString().slice(0, 10),
+      logoUrl: await logoDataUri(org?.logoUrl ?? null),
+      footer: org?.footerText ?? null,
+    });
+    const pdf = await htmlToPdf(renderReportDocument(data));
 
     const admin = createAdminSupabase();
     const buckets = await admin.storage.listBuckets();

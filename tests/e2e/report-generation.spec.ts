@@ -5,9 +5,9 @@ import { expect, test } from '@playwright/test';
 
 /**
  * E2-T3 — report generation: generate a monthly PDF for 3 clients within 30s,
- * find it in Supabase Storage at `{orgId}/{reportId}.pdf`, see all six charts
- * on the report view, and regenerate (same row, PDF overwritten) after a
- * metric changes.
+ * find it in Supabase Storage at `{orgId}/{reportId}.pdf`, see the report view
+ * (KPI grid, trend, per-client breakdown, detail table), and regenerate (same
+ * row, PDF overwritten) after a metric changes.
  */
 
 function loadEnvLocal(): void {
@@ -144,12 +144,20 @@ test.describe('report generation', () => {
     expect(firstRow?.status).toBe('generated');
     const firstGeneratedAt = firstRow?.generated_at as string;
 
-    // Criterion 3: the report view shows all six charts.
+    // Criterion 3: the report view shows the KPI grid, trend, per-client
+    // breakdown (3 clients seeded), and detail table.
     await page.goto(`/${slug}/reports/${reportId}`);
-    for (const key of METRIC_KEYS) {
-      await expect(page.locator(`[data-section="${key}"]`)).toBeVisible();
+    for (const section of ['kpis', 'tendencia', 'por-cliente', 'detalle']) {
+      await expect(page.locator(`[data-section="${section}"]`)).toBeVisible();
     }
-    expect(await page.locator('svg[data-metric]').count()).toBe(METRIC_KEYS.length);
+    for (const key of ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'cpl', 'roas']) {
+      await expect(page.locator(`[data-kpi="${key}"]`)).toBeVisible();
+    }
+    await expect(
+      page.locator('[data-section="detalle"]').getByRole('cell', { name: 'Cliente A' }),
+    ).toBeVisible();
+    // one per-client bar chart per metric in the detail order
+    expect(await page.locator('svg[data-metric]').count()).toBe(7);
 
     // Criterion 4: a metric changes → regenerate reuses the row and overwrites.
     await new Promise((r) => setTimeout(r, 1100));

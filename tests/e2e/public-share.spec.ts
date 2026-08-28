@@ -148,7 +148,7 @@ test.describe('public share', () => {
     expect(ok?.status()).toBe(200);
     expect(publicPage.url()).not.toContain('/auth/signin');
     await expect(publicPage.getByRole('heading', { name: 'Org A Share' })).toBeVisible();
-    await expect(publicPage.locator('[data-section="clicks"]')).toBeVisible();
+    await expect(publicPage.locator('[data-section="kpis"]')).toBeVisible();
     await expect(publicPage.getByText('Org A Share · Reporte compartido')).toBeVisible();
 
     // Criterion 3: expired link → 404.

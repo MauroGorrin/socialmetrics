@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
-import { type ReportData, REPORT_METRICS, ReportTemplate } from '@/components/pdf/report-template';
-import { reportMetricsByClient } from '@/server/queries/reports';
+import { ReportTemplate } from '@/components/pdf/report-template';
+import { getReportData } from '@/server/queries/reports';
 import { getReportByShareToken } from '@/server/queries/shares';
 
 /**
@@ -12,27 +12,17 @@ export default async function PublicReportPage({ params }: { params: { token: st
   const shared = await getReportByShareToken(params.token);
   if (!shared) notFound();
 
-  const clientMetrics = await reportMetricsByClient(
-    shared.org.id,
-    shared.report.clientIds ?? [],
-    shared.report.periodMonth,
-  );
-
-  const data: ReportData = {
+  const data = await getReportData({
+    orgId: shared.org.id,
     orgName: shared.org.name,
+    clientIds: shared.report.clientIds ?? [],
     periodMonth: shared.report.periodMonth,
     generatedAt: shared.report.generatedAt
       ? shared.report.generatedAt.toISOString().slice(0, 10)
       : '—',
     logoUrl: shared.org.logoUrl,
     footer: shared.org.footerText ?? `${shared.org.name} · Reporte compartido`,
-    clients: clientMetrics.map((client) => ({
-      name: client.clientName,
-      values: Object.fromEntries(
-        REPORT_METRICS.map((metric) => [metric.key, client.values[metric.key] ?? 0]),
-      ) as ReportData['clients'][number]['values'],
-    })),
-  };
+  });
 
   return (
     <main className="mx-auto max-w-3xl p-4 md:p-8">
