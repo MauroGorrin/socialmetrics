@@ -1,7 +1,7 @@
 import 'server-only';
 
-import { and, eq, gte, inArray, lt } from 'drizzle-orm';
-import { BASE_METRICS, firstOfMonth, type MetricKey, monthBounds } from '@/lib/metrics';
+import { and, eq, gte, lt } from 'drizzle-orm';
+import { firstOfMonth, type MetricKey, monthBounds } from '@/lib/metrics';
 import { db } from '@/server/db';
 import type { Metric } from '@/server/db/schema';
 import { metrics } from '@/server/db/schema';
@@ -51,10 +51,11 @@ export async function createMetric(input: NewMetric): Promise<Metric> {
 }
 
 /**
- * Replace a client's whole month of base metrics with the figures from the
- * monthly entry grid. Any existing rows for that client + month (whatever the
- * day) are cleared first, then one row per provided value is written at the
- * first of the month. The month always reflects exactly what the grid holds.
+ * Replace a client's whole month with the figures from the monthly entry grid.
+ * Every existing metric row for that client + month (base or ratio, whatever
+ * the day) is cleared first, then one row per provided base value is written at
+ * the first of the month. The month always reflects exactly what the grid holds,
+ * and stale directly-entered CTR/CPL/ROAS rows do not linger.
  */
 export async function upsertMonthlyMetrics(input: {
   orgId: string;
@@ -85,7 +86,6 @@ export async function upsertMonthlyMetrics(input: {
         and(
           eq(metrics.orgId, input.orgId),
           eq(metrics.clientId, input.clientId),
-          inArray(metrics.metricName, [...BASE_METRICS]),
           gte(metrics.period, from),
           lt(metrics.period, to),
         ),

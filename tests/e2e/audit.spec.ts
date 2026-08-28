@@ -4,9 +4,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
 
 /**
- * E3-T5 — audit logging: creating a metric logs an entry with actor + metadata,
- * deleting one logs the before-values, the admin viewer shows actor + time, and
- * the action-type filter narrows the list.
+ * E3-T5 — audit logging: saving a month of metrics logs an entry with actor +
+ * metadata, deleting a metric logs the before-values, the admin viewer shows
+ * actor + time, and the action-type filter narrows the list.
  */
 
 function loadEnvLocal(): void {
@@ -85,7 +85,7 @@ test.describe('audit logging', () => {
     }
   });
 
-  test('create + delete metric are logged; viewer shows actor and filters by action', async ({
+  test('save + delete metric are logged; viewer shows actor and filters by action', async ({
     page,
   }) => {
     await page.goto('/auth/signin');
@@ -94,14 +94,25 @@ test.describe('audit logging', () => {
     await page.click('button[type="submit"]');
     await page.waitForURL(new RegExp(`/${slug}/dashboard$`), { timeout: 90_000 });
 
-    // Create a metric through the dashboard form (→ audit 'metric.create').
-    await page.selectOption('select[name="clientId"]', { label: 'Audit Cliente' });
-    await page.selectOption('select[name="metricName"]', 'clicks');
-    await page.fill('input[name="metricValue"]', '77');
-    await page.getByRole('button', { name: 'Agregar métrica' }).click();
-    await expect(page.locator('tbody tr')).toHaveCount(1);
+    // Save a month of metrics through the grid (→ audit 'metric.month.save').
+    await page.goto(`/${slug}/metrics?client=${clientId}&month=2026-09`);
+    await page.fill('input[name="clicks"]', '77');
+    await page.fill('input[name="impressions"]', '2000');
+    await page.getByRole('button', { name: 'Guardar el mes' }).click();
+    await page.waitForURL(/saved=1/, { timeout: 90_000 });
 
-    // Delete it through the org API (→ audit 'metric.delete' with before-values).
+    await expect
+      .poll(async () => {
+        const { count } = await admin
+          .from('audit_log')
+          .select('id', { count: 'exact', head: true })
+          .eq('org_id', orgId)
+          .eq('action', 'metric.month.save');
+        return count;
+      })
+      .toBe(1);
+
+    // Delete one row through the org API (→ audit 'metric.delete' with before-values).
     const { data: seededMetric } = await admin
       .from('metric')
       .select('id')
@@ -124,18 +135,18 @@ test.describe('audit logging', () => {
 
     // Criterion 2: the viewer shows both entries with actor + timestamp.
     await page.goto(`/${slug}/settings/audit`);
-    const createRow = page.locator('tr[data-action="metric.create"]');
+    const saveRow = page.locator('tr[data-action="metric.month.save"]');
     const deleteRow = page.locator('tr[data-action="metric.delete"]');
-    await expect(createRow).toHaveCount(1);
+    await expect(saveRow).toHaveCount(1);
     await expect(deleteRow).toHaveCount(1);
-    await expect(createRow).toContainText(ownerEmail);
-    await expect(createRow.locator('td').first()).not.toBeEmpty();
+    await expect(saveRow).toContainText(ownerEmail);
+    await expect(saveRow.locator('td').first()).not.toBeEmpty();
 
     // Criterion 4: filter to one action type.
-    await page.selectOption('select[name="action"]', 'metric.create');
+    await page.selectOption('select[name="action"]', 'metric.month.save');
     await page.getByRole('button', { name: 'Filtrar' }).click();
-    await page.waitForURL(/action=metric.create/);
-    await expect(page.locator('tr[data-action="metric.create"]')).toHaveCount(1);
+    await page.waitForURL(/action=metric\.month\.save/);
+    await expect(page.locator('tr[data-action="metric.month.save"]')).toHaveCount(1);
     await expect(page.locator('tr[data-action="metric.delete"]')).toHaveCount(0);
   });
 });

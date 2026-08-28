@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { SidebarNav } from '@/components/layout/sidebar-nav';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { getCurrentUser } from '@/lib/auth';
 import { signOutAction } from '@/server/mutations/auth';
@@ -33,31 +33,37 @@ export default async function OrgLayout({
     { href: `${base}/settings`, label: 'Ajustes' },
   ];
 
+  const name = (user.user_metadata?.name as string | undefined)?.trim() || user.email || '';
+  const initials =
+    name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('') || '?';
+
   return (
     <div className="flex min-h-[100dvh]">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] md:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] md:flex">
         <div className="flex h-14 items-center border-b border-[var(--border)] px-4">
           <span className="truncate text-base font-bold text-[var(--fg)]">{access.org.name}</span>
         </div>
-        <nav className="flex flex-col gap-1 p-3">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded px-3 py-2 text-sm text-[var(--fg-muted)] transition-colors duration-150 ease-out hover:bg-[var(--background)] hover:text-[var(--fg)]"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <SidebarNav items={nav} className="flex flex-col gap-1 p-3" />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[var(--border)] bg-[var(--background)] px-4">
-          <span className="text-sm font-medium text-[var(--fg-muted)] md:hidden">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--background)] px-4">
+          <span className="truncate text-sm font-medium text-[var(--fg)] md:hidden">
             {access.org.name}
           </span>
-          <span className="hidden text-sm text-[var(--fg-muted)] md:inline">{user.email}</span>
+          <div className="hidden items-center gap-2 md:flex">
+            <span
+              aria-hidden
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface)] text-xs font-semibold text-[var(--fg)]"
+            >
+              {initials}
+            </span>
+            <span className="truncate text-sm text-[var(--fg-muted)]">{name}</span>
+          </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
             <form action={signOutAction}>
@@ -70,7 +76,13 @@ export default async function OrgLayout({
             </form>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-6">{children}</main>
+
+        <SidebarNav
+          items={nav}
+          className="flex gap-1 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface)] px-2 py-2 md:hidden"
+        />
+
+        <main className="mx-auto w-full max-w-5xl flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>
   );

@@ -4,9 +4,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
 
 /**
- * E2-T1 — metrics dashboard: empty state, single-row display, pagination past
- * one page (page size 100), and the client filter. One test: each Playwright
- * test gets a fresh context, so the sign-in has to live with the assertions.
+ * Dashboard — the per-client overview: a card per client showing the selected
+ * month's KPIs (with a delta once there's a prior month), the month picker, and
+ * the report-of-the-month row.
  */
 
 function loadEnvLocal(): void {
@@ -27,7 +27,7 @@ loadEnvLocal();
 const SUPABASE_URL = process.env.SUPABASE_URL ?? '';
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 const PASSWORD = 'E2e-Passw0rd-8chars';
-const PAGE_SIZE = 100;
+const MONTH = '2026-09';
 
 const stamp = Date.now();
 const userEmail = `e2e-dash-${stamp}@e2e-reportes.dev`;
@@ -37,11 +37,10 @@ let admin: SupabaseClient;
 let userId = '';
 let orgId = '';
 let clientUnoId = '';
-let clientDosId = '';
 
 test.describe.configure({ mode: 'serial', timeout: 150_000 });
 
-test.describe('metrics dashboard', () => {
+test.describe('dashboard overview', () => {
   test.use({ navigationTimeout: 90_000 });
 
   test.beforeAll(async () => {
@@ -59,13 +58,12 @@ test.describe('metrics dashboard', () => {
     userId = data.user.id;
 
     await admin.from('user').insert({ id: userId, email: userEmail });
-    const { data: org, error: orgErr } = await admin
+    const { data: org } = await admin
       .from('organization')
       .insert({ name: 'E2E Dash Org', slug, owner_id: userId })
       .select('id')
       .single();
-    if (orgErr || !org) throw orgErr ?? new Error('org insert failed');
-    orgId = org.id;
+    orgId = org?.id ?? '';
     await admin.from('membership').insert({
       org_id: orgId,
       user_id: userId,
@@ -81,9 +79,7 @@ test.describe('metrics dashboard', () => {
       ])
       .select('id, name');
     clientUnoId = seeded?.find((c) => c.name === 'Cliente Uno')?.id ?? '';
-    clientDosId = seeded?.find((c) => c.name === 'Cliente Dos')?.id ?? '';
     expect(clientUnoId).not.toBe('');
-    expect(clientDosId).not.toBe('');
   });
 
   test.afterAll(async () => {
@@ -98,69 +94,39 @@ test.describe('metrics dashboard', () => {
     }
   });
 
-  test('empty state, single-row entry, pagination, and client filter', async ({ page }) => {
+  test('client cards, no-data state, month picker, and report row', async ({ page }) => {
     await page.goto('/auth/signin');
     await page.fill('input[name="email"]', userEmail);
     await page.fill('input[name="password"]', PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForURL(new RegExp(`/${slug}/dashboard$`), { timeout: 90_000 });
 
-    // 1. Empty state.
-    await expect(page.getByText('No metrics yet')).toBeVisible();
+    // A card per client; no metrics yet → the no-data state + report "Sin generar".
+    await page.goto(`/${slug}/dashboard?month=${MONTH}`);
+    const cards = page.locator('article');
+    await expect(cards).toHaveCount(2);
+    await expect(page.getByText('Cliente Uno')).toBeVisible();
+    await expect(page.getByText('Sin datos cargados para este mes').first()).toBeVisible();
+    await expect(page.getByText('Sin generar')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Generar reporte' })).toBeVisible();
 
-    // 2. Add one metric via the form → one table row.
-    await page.selectOption('select[name="clientId"]', { label: 'Cliente Uno' });
-    await page.selectOption('select[name="metricName"]', 'clicks');
-    await page.fill('input[name="metricValue"]', '50');
-    await page.getByRole('button', { name: 'Agregar métrica' }).click();
+    // Seed one client's month → its card shows the figures.
+    await admin.from('metric').insert([
+      { org_id: orgId, client_id: clientUnoId, metric_name: 'impressions', metric_value: 12000, period: `${MONTH}-01`, created_by: userId },
+      { org_id: orgId, client_id: clientUnoId, metric_name: 'clicks', metric_value: 480, period: `${MONTH}-01`, created_by: userId },
+      { org_id: orgId, client_id: clientUnoId, metric_name: 'spend', metric_value: 300, period: `${MONTH}-01`, created_by: userId },
+    ]);
 
-    await expect(page.getByText('No metrics yet')).toBeHidden();
-    const rows = page.locator('tbody tr');
-    await expect(rows).toHaveCount(1);
-    await expect(rows.first()).toContainText('Cliente Uno');
-    await expect(rows.first()).toContainText('Clics');
-    await expect(rows.first()).toContainText('50');
+    await page.goto(`/${slug}/dashboard?month=${MONTH}`);
+    const unoCard = page.locator('article', { hasText: 'Cliente Uno' });
+    await expect(unoCard).toContainText('12.000');
+    await expect(unoCard).toContainText('4%'); // CTR 480 / 12000
+    await expect(unoCard.getByRole('link', { name: 'Editar datos' })).toBeVisible();
 
-    // 3. Pagination once metrics exceed one page.
-    const bulk = Array.from({ length: 200 }, (_, i) => ({
-      org_id: orgId,
-      client_id: clientUnoId,
-      metric_name: 'impressions',
-      metric_value: 100 + i,
-      period: '2026-08-01',
-      created_by: userId,
-    }));
-    expect((await admin.from('metric').insert(bulk)).error).toBeNull();
-
+    // Month picker moves the view.
     await page.goto(`/${slug}/dashboard`);
-    await expect(page.locator('tbody tr')).toHaveCount(PAGE_SIZE);
-    const next = page.getByRole('link', { name: 'Siguiente' });
-    await expect(next).toBeVisible();
-    await next.click();
-    await page.waitForURL(/\?page=2$/);
-    await expect(page.locator('tbody tr')).toHaveCount(PAGE_SIZE);
-    await expect(page.getByRole('link', { name: 'Anterior' })).toBeVisible();
-
-    // 4. Filter by client.
-    expect(
-      (
-        await admin.from('metric').insert([
-          { org_id: orgId, client_id: clientDosId, metric_name: 'spend', metric_value: 10, period: '2026-08-02', created_by: userId },
-          { org_id: orgId, client_id: clientDosId, metric_name: 'spend', metric_value: 20, period: '2026-08-03', created_by: userId },
-          { org_id: orgId, client_id: clientDosId, metric_name: 'clicks', metric_value: 5, period: '2026-08-04', created_by: userId },
-        ])
-      ).error,
-    ).toBeNull();
-
-    await page.goto(`/${slug}/dashboard`);
-    await page.selectOption('form[method="get"] select[name="client"]', { label: 'Cliente Dos' });
-    await page.getByRole('button', { name: 'Filtrar' }).click();
-    await page.waitForURL(new RegExp(`client=${clientDosId}`));
-
-    const filtered = page.locator('tbody tr');
-    await expect(filtered).toHaveCount(3);
-    const firstCells = await filtered.locator('td:first-child').allInnerTexts();
-    expect(firstCells).toEqual(['Cliente Dos', 'Cliente Dos', 'Cliente Dos']);
-    await expect(page.locator('tbody')).not.toContainText('Cliente Uno');
+    await page.fill('input[name="month"]', MONTH);
+    await page.getByRole('button', { name: 'Ver' }).click();
+    await page.waitForURL(new RegExp(`month=${MONTH}`));
   });
 });

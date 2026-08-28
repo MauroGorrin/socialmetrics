@@ -10,7 +10,11 @@ import * as schema from '@/server/db/schema';
  */
 const queryClient = postgres(env.DATABASE_URL, {
   prepare: false,
-  max: 10,
+  // Supabase's session pooler has a small fixed slot count (15 on the
+  // freelancer plan). Every serverless instance opens its own pool, so keep
+  // this low — 3 covers the widest `Promise.all` in the app (report data)
+  // while leaving room for several instances at once.
+  max: 3,
   // Supabase (pooler and direct) requires TLS; the URL may or may not carry
   // ?sslmode=require, so assert it here too.
   ssl: 'require',
