@@ -49,11 +49,11 @@ export async function createMetric(input: NewMetric): Promise<Metric> {
   return row;
 }
 
-/** Delete a metric. `false` when no row in this org matches the id. */
-export async function deleteMetric(orgId: string, metricId: string): Promise<boolean> {
-  const rows = await db
+/** Delete a metric, returning the deleted row (for auditing), or `null`. */
+export async function deleteMetric(orgId: string, metricId: string): Promise<Metric | null> {
+  const [row] = await db
     .delete(metrics)
     .where(and(eq(metrics.orgId, orgId), eq(metrics.id, metricId)))
-    .returning({ id: metrics.id });
-  return rows.length > 0;
+    .returning();
+  return row ?? null;
 }
