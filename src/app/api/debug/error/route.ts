@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { captureException } from '@/lib/sentry';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Deliberate error endpoint (E3-T6 acceptance): captures a synthetic exception
  * through the same path a real one takes and returns its request id so the
