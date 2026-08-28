@@ -4,7 +4,7 @@ import { and, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
 import { createAdminSupabase } from '@/lib/auth';
 import { db } from '@/server/db';
 import type { Report } from '@/server/db/schema';
-import { clients, metrics, reports } from '@/server/db/schema';
+import { clients, emailEvents, metrics, organizations, reports, users } from '@/server/db/schema';
 
 const STORAGE_BUCKET = 'reports';
 
@@ -35,6 +35,38 @@ export async function signedReportPdfUrl(pdfPath: string): Promise<string | null
   const admin = createAdminSupabase();
   const { data } = await admin.storage.from(STORAGE_BUCKET).createSignedUrl(pdfPath, 600);
   return data?.signedUrl ?? null;
+}
+
+/** The org (+ owner + report) a Resend `email_id` belongs to, from its send record. */
+export async function emailSendContext(
+  providerId: string,
+): Promise<{ orgId: string; ownerId: string; reportId: string | null } | null> {
+  const [row] = await db
+    .select({
+      orgId: emailEvents.orgId,
+      ownerId: organizations.ownerId,
+      reportId: emailEvents.reportId,
+    })
+    .from(emailEvents)
+    .innerJoin(organizations, eq(organizations.id, emailEvents.orgId))
+    .where(
+      and(
+        eq(emailEvents.providerId, providerId),
+        inArray(emailEvents.eventType, ['sent', 'send_failed']),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/** The user whose email is `email` (a recipient who is also a member), or null. */
+export async function userIdForEmail(email: string): Promise<string | null> {
+  const [row] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email.toLowerCase()))
+    .limit(1);
+  return row?.id ?? null;
 }
 
 export type ReportClientMetrics = {

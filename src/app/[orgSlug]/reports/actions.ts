@@ -1,10 +1,11 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
 import { ForbiddenError, requireRole, TenantError } from '@/server/auth/guards';
-import { generateReport } from '@/server/mutations/reports';
+import { generateReport, sendReport } from '@/server/mutations/reports';
 
 const schema = z.object({
   orgSlug: z.string().min(1),
@@ -52,4 +53,54 @@ export async function generateReportAction(formData: FormData): Promise<void> {
     }
   }
   redirect(target);
+}
+
+export type SendReportState = { ok?: boolean; error?: string; warning?: string };
+
+const sendSchema = z.object({
+  orgSlug: z.string().min(1),
+  reportId: z.uuid(),
+  recipients: z.string().min(1),
+});
+
+export async function sendReportAction(
+  _prev: SendReportState,
+  formData: FormData,
+): Promise<SendReportState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: 'Tu sesión expiró. Volvé a iniciar sesión.' };
+
+  const parsed = sendSchema.safeParse({
+    orgSlug: str(formData, 'orgSlug'),
+    reportId: str(formData, 'reportId'),
+    recipients: str(formData, 'recipients'),
+  });
+  if (!parsed.success) return { error: 'Ingresá al menos un email.' };
+
+  const recipients = parsed.data.recipients
+    .split(/[\s,;]+/)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const validated = z.array(z.email()).min(1).max(20).safeParse(recipients);
+  if (!validated.success) return { error: 'Revisá los emails ingresados.' };
+
+  try {
+    const { org } = await requireRole(parsed.data.orgSlug, user.id, 'admin');
+    const result = await sendReport({
+      orgId: org.id,
+      orgSlug: parsed.data.orgSlug,
+      orgName: org.name,
+      actorId: user.id,
+      reportId: parsed.data.reportId,
+      recipients: validated.data,
+    });
+    if (!result.ok) return { error: result.error };
+    revalidatePath(`/${parsed.data.orgSlug}/reports/${parsed.data.reportId}`);
+    return { ok: true, warning: result.data.warning };
+  } catch (error) {
+    if (error instanceof ForbiddenError || error instanceof TenantError) {
+      return { error: 'No tenés permiso para enviar reportes.' };
+    }
+    throw error;
+  }
 }

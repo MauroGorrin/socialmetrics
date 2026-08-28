@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { sendReportAction } from '@/app/[orgSlug]/reports/actions';
+import { SendReportDialog } from '@/components/app/send-report-dialog';
 import { type ReportData, REPORT_METRICS, ReportTemplate } from '@/components/pdf/report-template';
 import { getCurrentUser } from '@/lib/auth';
 import { getAccessibleOrg } from '@/server/queries/orgs';
@@ -40,6 +42,8 @@ export default async function ReportViewPage({
   };
 
   const pdfUrl = report.pdfUrl ? await signedReportPdfUrl(report.pdfUrl) : null;
+  const canSend =
+    (access.role === 'owner' || access.role === 'admin') && Boolean(report.pdfUrl);
 
   return (
     <section className="space-y-4">
@@ -50,14 +54,23 @@ export default async function ReportViewPage({
         >
           ← Volver a reportes
         </Link>
-        {pdfUrl ? (
-          <a
-            href={pdfUrl}
-            className="rounded border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--fg)] hover:opacity-70"
-          >
-            Descargar PDF
-          </a>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {canSend ? (
+            <SendReportDialog
+              orgSlug={params.orgSlug}
+              reportId={report.id}
+              action={sendReportAction}
+            />
+          ) : null}
+          {pdfUrl ? (
+            <a
+              href={pdfUrl}
+              className="rounded border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--fg)] hover:opacity-70"
+            >
+              Descargar PDF
+            </a>
+          ) : null}
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-white p-6 text-black">

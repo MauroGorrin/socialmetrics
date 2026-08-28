@@ -29,6 +29,13 @@
       "when": 1787920287600,
       "tag": "0003_steep_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787921025488,
+      "tag": "0004_clumsy_sentinel",
+      "breakpoints": true
     }
   ]
 }

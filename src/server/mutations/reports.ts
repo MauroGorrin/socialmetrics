@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import {
   type ReportData,
@@ -7,10 +8,14 @@ import {
   renderReportDocument,
 } from '@/components/pdf/report-template';
 import { createAdminSupabase } from '@/lib/auth';
+import { sendEmail } from '@/lib/email';
+import { env } from '@/lib/env';
 import { htmlToPdf } from '@/lib/pdf-generator';
 import { db } from '@/server/db';
-import { auditLogs, reports } from '@/server/db/schema';
-import { reportMetricsByClient } from '@/server/queries/reports';
+import { auditLogs, emailEvents, reports } from '@/server/db/schema';
+import { getReport, reportMetricsByClient } from '@/server/queries/reports';
+
+const SITE_URL = env.SESSION_URL ?? 'http://localhost:3000';
 
 /**
  * Report generation: roll metrics up per client for the month, render the
@@ -114,4 +119,80 @@ export async function generateReport(input: {
     console.error('[report] generation failed', error);
     return { ok: false, error: 'No pudimos generar el reporte. Probá de nuevo.' };
   }
+}
+
+/**
+ * Email a generated report as a PDF attachment to `recipients`, recording one
+ * `email_event` row per recipient (joined to later webhook events by
+ * `providerId`). The Resend call may fail (bad key, network) — the attempt is
+ * still recorded and the caller gets a warning, not an error.
+ */
+export async function sendReport(input: {
+  orgId: string;
+  orgSlug: string;
+  orgName: string;
+  actorId: string;
+  reportId: string;
+  recipients: string[];
+}): Promise<Result<{ providerId: string; recipients: number; warning?: string }>> {
+  const report = await getReport(input.orgId, input.reportId);
+  if (!report?.pdfUrl) {
+    return { ok: false, error: 'Generá el reporte antes de enviarlo.' };
+  }
+
+  const admin = createAdminSupabase();
+  const download = await admin.storage.from(STORAGE_BUCKET).download(report.pdfUrl);
+  if (download.error || !download.data) {
+    return { ok: false, error: 'No se encontró el PDF del reporte.' };
+  }
+  const pdf = Buffer.from(await download.data.arrayBuffer());
+
+  const link = `${SITE_URL}/${input.orgSlug}/reports/${input.reportId}`;
+  const subject = `Reporte ${report.periodMonth} · ${input.orgName}`;
+  const result = await sendEmail({
+    to: input.recipients,
+    subject,
+    html: `<p>Adjuntamos el reporte de <strong>${input.orgName}</strong> para ${report.periodMonth}.</p>
+           <p><a href="${link}">Ver el reporte online</a></p>`,
+    attachments: [{ filename: `reporte-${report.periodMonth}.pdf`, content: pdf }],
+  });
+
+  const providerId = result.ok && result.id ? result.id : randomUUID();
+
+  await db.insert(emailEvents).values(
+    input.recipients.map((recipient) => ({
+      orgId: input.orgId,
+      reportId: input.reportId,
+      recipient,
+      eventType: result.ok ? ('sent' as const) : ('send_failed' as const),
+      providerId,
+      metadata: {
+        subject,
+        attachmentBytes: pdf.length,
+        ...(result.ok ? {} : { error: result.error }),
+      },
+    })),
+  );
+
+  await db
+    .update(reports)
+    .set({ status: 'sent', updatedAt: new Date() })
+    .where(eq(reports.id, input.reportId));
+
+  await db.insert(auditLogs).values({
+    orgId: input.orgId,
+    actorId: input.actorId,
+    action: 'send_report',
+    targetId: input.reportId,
+    metadata: { recipients: input.recipients, providerId },
+  });
+
+  return {
+    ok: true,
+    data: {
+      providerId,
+      recipients: input.recipients.length,
+      warning: result.ok ? undefined : 'El proveedor de email rechazó el envío; quedó registrado.',
+    },
+  };
 }

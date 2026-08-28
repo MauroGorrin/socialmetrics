@@ -190,6 +190,34 @@ export const reportComments = pgTable(
   (table) => [index('idx_report_comment_report_id').on(table.reportId)],
 );
 
+// ── email_event ───────────────────────────────────────────────────────────────
+// One row per outbound send and per Resend webhook event (delivered, bounced,
+// opened, clicked). `provider_id` is Resend's email id — the join key between a
+// send and its later events.
+export const emailEvents = pgTable(
+  'email_event',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    reportId: uuid('report_id').references(() => reports.id, { onDelete: 'set null' }),
+    recipient: text('recipient').notNull(),
+    eventType: text('event_type').notNull(),
+    providerId: text('provider_id'),
+    metadata: jsonb('metadata'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_email_event_org_id_created_at').on(table.orgId, table.createdAt),
+    index('idx_email_event_provider_id').on(table.providerId),
+    check(
+      'email_event_event_type_check',
+      sql`${table.eventType} in ('sent', 'send_failed', 'delivered', 'bounced', 'complained', 'opened', 'clicked', 'delivery_delayed')`,
+    ),
+  ],
+);
+
 // ── audit_log ─────────────────────────────────────────────────────────────────
 export const auditLogs = pgTable(
   'audit_log',
@@ -220,5 +248,6 @@ export type Metric = typeof metrics.$inferSelect;
 export type Report = typeof reports.$inferSelect;
 export type ReportComment = typeof reportComments.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
+export type EmailEvent = typeof emailEvents.$inferSelect;
 
 export type Role = 'owner' | 'admin' | 'manager';
