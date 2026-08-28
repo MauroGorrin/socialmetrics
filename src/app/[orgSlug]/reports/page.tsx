@@ -1,9 +1,10 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { generateReportAction } from '@/app/[orgSlug]/reports/actions';
+import { MonthFilter } from '@/components/app/month-filter';
+import { ReportListTable } from '@/components/app/report-list-table';
 import { getCurrentUser } from '@/lib/auth';
 import { getAccessibleOrg } from '@/server/queries/orgs';
-import { listReports } from '@/server/queries/reports';
+import { listReports, reportMonths } from '@/server/queries/reports';
 
 const ERRORS: Record<string, string> = {
   period: 'Elegí un mes válido.',
@@ -20,7 +21,7 @@ export default async function ReportsPage({
   searchParams,
 }: {
   params: { orgSlug: string };
-  searchParams: { error?: string };
+  searchParams: { error?: string; month?: string };
 }) {
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/signin?redirect=/${params.orgSlug}/reports`);
@@ -28,9 +29,15 @@ export default async function ReportsPage({
   const access = await getAccessibleOrg(params.orgSlug, user.id);
   if (!access) notFound();
 
-  const reports = await listReports(access.org.id);
+  const activeMonth = typeof searchParams.month === 'string' ? searchParams.month : '';
+  const [reports, months] = await Promise.all([
+    listReports(access.org.id, { month: activeMonth || undefined }),
+    reportMonths(access.org.id),
+  ]);
+
   const canGenerate = access.role === 'owner' || access.role === 'admin';
   const error = searchParams.error ? (ERRORS[searchParams.error] ?? ERRORS.failed) : null;
+  const basePath = `/${params.orgSlug}/reports`;
 
   return (
     <section className="space-y-6">
@@ -49,7 +56,7 @@ export default async function ReportsPage({
         >
           <input type="hidden" name="orgSlug" value={params.orgSlug} />
           <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
-            Mes
+            Generar reporte del mes
             <input
               name="periodMonth"
               type="month"
@@ -62,34 +69,25 @@ export default async function ReportsPage({
             type="submit"
             className="rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90"
           >
-            Generar reporte
+            Generar
           </button>
         </form>
       ) : null}
 
-      {reports.length === 0 ? (
-        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--fg-muted)]">
-          Todavía no generaste reportes.
-        </p>
-      ) : (
-        <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">
-          {reports.map((report) => (
-            <li key={report.id}>
-              <Link
-                href={`/${params.orgSlug}/reports/${report.id}`}
-                className="flex items-center justify-between gap-4 px-4 py-3 transition-colors duration-150 hover:bg-[var(--surface)]"
-              >
-                <span className="font-medium text-[var(--fg)]">{report.periodMonth}</span>
-                <span className="text-sm text-[var(--fg-muted)]">
-                  {report.status === 'generated' || report.status === 'sent'
-                    ? 'Generado'
-                    : 'Borrador'}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <MonthFilter basePath={basePath} months={months} active={activeMonth} />
+
+      <ReportListTable
+        orgSlug={params.orgSlug}
+        canGenerate={canGenerate}
+        generateAction={generateReportAction}
+        rows={reports.map((report) => ({
+          id: report.id,
+          periodMonth: report.periodMonth,
+          createdAt: report.createdAt.toISOString(),
+          status: report.status,
+          hasPdf: Boolean(report.pdfUrl),
+        }))}
+      />
     </section>
   );
 }

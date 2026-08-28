@@ -1,10 +1,18 @@
 import 'server-only';
 
-import { and, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm';
 import { createAdminSupabase } from '@/lib/auth';
 import { db } from '@/server/db';
 import type { Report } from '@/server/db/schema';
-import { clients, emailEvents, metrics, organizations, reports, users } from '@/server/db/schema';
+import {
+  clients,
+  emailEvents,
+  memberships,
+  metrics,
+  organizations,
+  reports,
+  users,
+} from '@/server/db/schema';
 
 const STORAGE_BUCKET = 'reports';
 
@@ -13,12 +21,26 @@ const STORAGE_BUCKET = 'reports';
  * Every function is org-scoped.
  */
 
-export async function listReports(orgId: string): Promise<Report[]> {
-  return db
-    .select()
+/** An org's reports, newest first. Optionally filtered to one `YYYY-MM` month. */
+export async function listReports(
+  orgId: string,
+  options: { month?: string } = {},
+): Promise<Report[]> {
+  const where = options.month
+    ? and(eq(reports.orgId, orgId), eq(reports.periodMonth, options.month))
+    : eq(reports.orgId, orgId);
+
+  return db.select().from(reports).where(where).orderBy(desc(reports.createdAt));
+}
+
+/** The distinct months an org has reports for, newest first — month-filter options. */
+export async function reportMonths(orgId: string): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ periodMonth: reports.periodMonth })
     .from(reports)
     .where(eq(reports.orgId, orgId))
-    .orderBy(desc(reports.createdAt));
+    .orderBy(desc(reports.periodMonth));
+  return rows.map((row) => row.periodMonth);
 }
 
 export async function getReport(orgId: string, reportId: string): Promise<Report | null> {
@@ -30,10 +52,40 @@ export async function getReport(orgId: string, reportId: string): Promise<Report
   return row ?? null;
 }
 
-/** A short-lived signed URL for a stored report PDF, or `null`. */
-export async function signedReportPdfUrl(pdfPath: string): Promise<string | null> {
+/** A report the user may access (member of its org), with the org slug. `null` otherwise. */
+export async function getAccessibleReport(
+  reportId: string,
+  userId: string,
+): Promise<{ report: Report; orgSlug: string } | null> {
+  const [row] = await db
+    .select({ report: reports, orgSlug: organizations.slug })
+    .from(reports)
+    .innerJoin(organizations, eq(organizations.id, reports.orgId))
+    .innerJoin(
+      memberships,
+      and(
+        eq(memberships.orgId, reports.orgId),
+        eq(memberships.userId, userId),
+        isNotNull(memberships.acceptedAt),
+      ),
+    )
+    .where(eq(reports.id, reportId))
+    .limit(1);
+  return row ? { report: row.report, orgSlug: row.orgSlug } : null;
+}
+
+/**
+ * A short-lived signed URL for a stored report PDF, or `null`. Pass
+ * `downloadName` to make the link force a download with that filename.
+ */
+export async function signedReportPdfUrl(
+  pdfPath: string,
+  downloadName?: string,
+): Promise<string | null> {
   const admin = createAdminSupabase();
-  const { data } = await admin.storage.from(STORAGE_BUCKET).createSignedUrl(pdfPath, 600);
+  const { data } = await admin.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrl(pdfPath, 600, downloadName ? { download: downloadName } : undefined);
   return data?.signedUrl ?? null;
 }
 
