@@ -1,5 +1,7 @@
+import 'server-only';
+
 import { createServerClient } from '@supabase/ssr';
-import type { User } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { env } from '@/lib/env';
@@ -49,6 +51,17 @@ export function createServerSupabase() {
         }
       },
     },
+  });
+}
+
+/**
+ * Service-role Supabase client — bypasses RLS and can call the Admin API
+ * (create users, generate links). Server-only; never expose the key or this
+ * client to the browser.
+ */
+export function createAdminSupabase(): SupabaseClient {
+  return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 }
 

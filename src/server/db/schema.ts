@@ -71,12 +71,15 @@ export const memberships = pgTable(
       .references(() => organizations.id, { onDelete: 'cascade' }),
     role: text('role').notNull(),
     invitedBy: uuid('invited_by').references(() => users.id),
+    inviteToken: text('invite_token').unique(),
+    inviteExpiresAt: timestamptz('invite_expires_at'),
     acceptedAt: timestamptz('accepted_at'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex('membership_user_id_org_id_unique').on(table.userId, table.orgId),
     index('idx_membership_org_id').on(table.orgId),
+    index('idx_membership_invite_token').on(table.inviteToken),
     check('membership_role_check', sql`${table.role} in ('owner', 'admin', 'manager')`),
   ],
 );
