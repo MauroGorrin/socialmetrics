@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { getCurrentUser } from '@/lib/auth';
 import { signOutAction } from '@/server/mutations/auth';
 import { getAccessibleOrg } from '@/server/queries/orgs';
@@ -56,14 +57,17 @@ export default async function OrgLayout({
             {access.org.name}
           </span>
           <span className="hidden text-sm text-[var(--fg-muted)] md:inline">{user.email}</span>
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="rounded px-3 py-1.5 text-sm text-[var(--fg)] transition-opacity duration-150 ease-out hover:opacity-70"
-            >
-              Cerrar sesión
-            </button>
-          </form>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="rounded px-3 py-1.5 text-sm text-[var(--fg)] transition-opacity duration-150 ease-out hover:opacity-70"
+              >
+                Cerrar sesión
+              </button>
+            </form>
+          </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-6">{children}</main>
       </div>

@@ -26,6 +26,28 @@ function systemPrefersDark(): boolean {
   );
 }
 
+/** localStorage can throw in private modes / blocked-storage contexts. */
+function readStoredTheme(): 'light' | 'dark' | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === 'light' || stored === 'dark' ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredTheme(theme: Theme): void {
+  try {
+    if (theme === 'system') {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, theme);
+    }
+  } catch {
+    // storage blocked — the choice just won't persist across visits
+  }
+}
+
 function applyTheme(theme: Theme): 'light' | 'dark' {
   const resolved = theme === 'system' ? (systemPrefersDark() ? 'dark' : 'light') : theme;
   const root = document.documentElement;
@@ -59,8 +81,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Hydrate from storage once mounted; the inline script already painted.
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const initial: Theme = stored === 'light' || stored === 'dark' ? stored : 'system';
+    const stored = readStoredTheme();
+    const initial: Theme = stored ?? 'system';
     setThemeState(initial);
     setResolvedTheme(applyTheme(initial));
   }, []);
@@ -77,11 +99,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
     setResolvedTheme(applyTheme(next));
-    if (next === 'system') {
-      localStorage.removeItem(STORAGE_KEY);
-    } else {
-      localStorage.setItem(STORAGE_KEY, next);
-    }
+    writeStoredTheme(next);
   }, []);
 
   const toggleTheme = useCallback(() => {
