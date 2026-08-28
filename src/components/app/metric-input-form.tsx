@@ -43,7 +43,7 @@ export function MetricInputForm({ orgSlug, clients, metricOptions, action }: Pro
         Cliente
         <select name="clientId" required defaultValue="" className={FIELD}>
           <option value="" disabled>
-            Elegí un cliente
+            Elige un cliente
           </option>
           {clients.map((client) => (
             <option key={client.id} value={client.id}>

@@ -7,7 +7,7 @@ const BUTTON =
 
 const ERRORS: Record<string, string> = {
   weak: 'La contraseña necesita al menos 8 caracteres.',
-  failed: 'El enlace expiró o no es válido. Pedí uno nuevo.',
+  failed: 'El enlace expiró o no es válido. Solicita uno nuevo.',
 };
 
 export default function ResetPasswordPage({
@@ -20,7 +20,7 @@ export default function ResetPasswordPage({
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-sm flex-col justify-center gap-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold text-[var(--fg)]">Elegí una nueva contraseña</h1>
+        <h1 className="text-2xl font-bold text-[var(--fg)]">Elige una nueva contraseña</h1>
         <p className="mt-1 text-sm text-[var(--fg-muted)]">Mínimo 8 caracteres.</p>
       </div>
 

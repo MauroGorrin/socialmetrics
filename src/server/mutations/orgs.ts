@@ -90,7 +90,7 @@ export async function updateBranding(
       return { ok: false, error: 'El logo debe pesar menos de 2 MB.' };
     }
     if (!input.logo.contentType.startsWith('image/')) {
-      return { ok: false, error: 'Subí un archivo de imagen.' };
+      return { ok: false, error: 'Sube un archivo de imagen.' };
     }
     await ensureBrandingBucket(admin);
     const path = `${org.id}/logo.${input.logo.ext}`;

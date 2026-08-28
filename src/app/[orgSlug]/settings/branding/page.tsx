@@ -9,8 +9,8 @@ const FIELD =
 const NOTICES: Record<string, string> = {
   saved: 'Branding actualizado. Los reportes pendientes se regeneraron.',
   'error:save': 'No se pudo guardar el branding.',
-  'error:type': 'Formato no soportado. Usá PNG, JPG, SVG o WebP.',
-  'error:forbidden': 'Necesitás rol de administrador.',
+  'error:type': 'Formato no soportado. Usa PNG, JPG, SVG o WebP.',
+  'error:forbidden': 'Necesitas rol de administrador.',
 };
 
 export default async function BrandingPage({

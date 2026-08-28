@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 export const metadata = {
   title: 'Reportes App — Reportes mensuales de marketing para tus clientes',
   description:
-    'Generá reportes mensuales con tu marca a partir de las métricas de redes sociales y ads. Para agencias y consultores.',
+    'Genera reportes mensuales con tu marca a partir de las métricas de redes sociales y ads. Para agencias y consultores.',
 };
 
 const GHOST_LINK =
@@ -23,7 +23,7 @@ const FEATURES: Array<{ icon: ReactNode; title: string; body: string }> = [
   {
     icon: <IconChart />,
     title: 'Métricas en un solo lugar',
-    body: 'Cargá impresiones, clics, inversión, ROAS, CTR y CPL por cliente y por mes. KPIs calculados automáticamente.',
+    body: 'Carga impresiones, clics, inversión, ROAS, CTR y CPL por cliente y por mes. KPIs calculados automáticamente.',
   },
   {
     icon: <IconDocument />,
@@ -33,29 +33,29 @@ const FEATURES: Array<{ icon: ReactNode; title: string; body: string }> = [
   {
     icon: <IconLink />,
     title: 'Link público para compartir',
-    body: 'Compartí el reporte con un enlace temporal. El cliente lo abre sin crear cuenta ni instalar nada.',
+    body: 'Comparte el reporte con un enlace temporal. El cliente lo abre sin crear cuenta ni instalar nada.',
   },
   {
     icon: <IconUsers />,
     title: 'Multi-cliente y equipo',
-    body: 'Invitá a tu equipo con roles. Cada organización ve solo sus clientes y sus datos.',
+    body: 'Invita a tu equipo con roles. Cada organización ve solo sus clientes y sus datos.',
   },
 ];
 
 const STEPS: Array<{ n: string; title: string; body: string }> = [
   {
     n: '1',
-    title: 'Creá tu cuenta',
-    body: 'Sin tarjeta. Entrás directo y armás tu primera organización en el asistente.',
+    title: 'Crea tu cuenta',
+    body: 'Sin tarjeta. Entras directo y armas tu primera organización en el asistente.',
   },
   {
     n: '2',
-    title: 'Cargá clientes y métricas',
-    body: 'Agregá cada cliente y sus números del mes. O usá los datos de ejemplo para probar.',
+    title: 'Carga clientes y métricas',
+    body: 'Agrega cada cliente y sus números del mes. O usa los datos de ejemplo para probar.',
   },
   {
     n: '3',
-    title: 'Generá y enviá el reporte',
+    title: 'Genera y envía el reporte',
     body: 'Un PDF con tu marca, o un link para compartir. En segundos, todos los meses.',
   },
 ];
@@ -89,7 +89,7 @@ export default function HomePage() {
             Reportes mensuales con tu marca, sin pelearte con planillas
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-[var(--fg-muted)]">
-            Centralizá las métricas de redes y ads de cada cliente y generá un reporte PDF
+            Centraliza las métricas de redes y ads de cada cliente y genera un reporte PDF
             profesional —o un link para compartir— en segundos.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -104,7 +104,7 @@ export default function HomePage() {
             </Link>
           </div>
           <p className="mt-3 text-sm text-[var(--fg-muted)]">
-            Sin tarjeta de crédito. Entrás y probás con datos de ejemplo.
+            Sin tarjeta de crédito. Entras y pruebas con datos de ejemplo.
           </p>
         </section>
 
@@ -112,7 +112,7 @@ export default function HomePage() {
         <section className="border-t border-[var(--border)] bg-[var(--surface)]">
           <div className="mx-auto w-full max-w-5xl px-4 py-16 md:py-20">
             <h2 className="text-2xl font-bold tracking-tight text-[var(--fg)]">
-              Todo lo que necesitás para el reporte del mes
+              Todo lo que necesitas para el reporte del mes
             </h2>
             <div className="mt-10 grid gap-6 sm:grid-cols-2">
               {FEATURES.map((feature) => (
@@ -150,7 +150,7 @@ export default function HomePage() {
           <div className="mx-auto flex w-full max-w-5xl flex-col items-start gap-4 px-4 py-16 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-[var(--fg)]">
-                Armá tu primer reporte hoy
+                Arma tu primer reporte hoy
               </h2>
               <p className="mt-2 text-sm text-[var(--fg-muted)]">
                 Toma menos de cinco minutos con el asistente.

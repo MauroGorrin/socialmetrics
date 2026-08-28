@@ -99,21 +99,21 @@ export async function sendReportAction(
   formData: FormData,
 ): Promise<SendReportState> {
   const user = await getCurrentUser();
-  if (!user) return { error: 'Tu sesión expiró. Volvé a iniciar sesión.' };
+  if (!user) return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
 
   const parsed = sendSchema.safeParse({
     orgSlug: str(formData, 'orgSlug'),
     reportId: str(formData, 'reportId'),
     recipients: str(formData, 'recipients'),
   });
-  if (!parsed.success) return { error: 'Ingresá al menos un email.' };
+  if (!parsed.success) return { error: 'Ingresa al menos un email.' };
 
   const recipients = parsed.data.recipients
     .split(/[\s,;]+/)
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
   const validated = z.array(z.email()).min(1).max(20).safeParse(recipients);
-  if (!validated.success) return { error: 'Revisá los emails ingresados.' };
+  if (!validated.success) return { error: 'Revisa los emails ingresados.' };
 
   try {
     const { org } = await requireRole(parsed.data.orgSlug, user.id, 'admin');
@@ -130,7 +130,7 @@ export async function sendReportAction(
     return { ok: true, warning: result.data.warning };
   } catch (error) {
     if (error instanceof ForbiddenError || error instanceof TenantError) {
-      return { error: 'No tenés permiso para enviar reportes.' };
+      return { error: 'No tienes permiso para enviar reportes.' };
     }
     throw error;
   }

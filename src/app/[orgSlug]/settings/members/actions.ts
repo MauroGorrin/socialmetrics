@@ -47,14 +47,14 @@ export async function inviteMemberAction(
   formData: FormData,
 ): Promise<InviteMemberState> {
   const user = await getCurrentUser();
-  if (!user) return { error: 'Tu sesión expiró. Volvé a iniciar sesión.' };
+  if (!user) return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
 
   const parsed = inviteSchema.safeParse({
     orgSlug: str(formData, 'orgSlug'),
     email: str(formData, 'email').trim().toLowerCase(),
     role: str(formData, 'role'),
   });
-  if (!parsed.success) return { error: 'Ingresá un email válido y elegí un rol.' };
+  if (!parsed.success) return { error: 'Ingresa un email válido y elige un rol.' };
 
   try {
     const { org } = await requireRole(parsed.data.orgSlug, user.id, 'admin');
@@ -74,7 +74,7 @@ export async function inviteMemberAction(
     });
   } catch (error) {
     if (error instanceof ForbiddenError || error instanceof TenantError) {
-      return { error: 'No tenés permiso para invitar miembros.' };
+      return { error: 'No tienes permiso para invitar miembros.' };
     }
     throw error;
   }

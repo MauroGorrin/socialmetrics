@@ -22,7 +22,7 @@ export default function ForgotPasswordPage({
 
       {searchParams.sent ? (
         <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--fg)]">
-          Si el email está registrado, vas a recibir un enlace para restablecer la contraseña.
+          Si el email está registrado, recibirás un enlace para restablecer la contraseña.
         </p>
       ) : (
         <form action={forgotPasswordAction} className="flex flex-col gap-4">

@@ -59,7 +59,7 @@ async function recordAudit(
 
 /** Guard errors → a user-facing message; anything else re-throws (→ 500). */
 function messageForError(error: unknown): string {
-  if (error instanceof ForbiddenError) return 'No tenés permiso para gestionar clientes.';
+  if (error instanceof ForbiddenError) return 'No tienes permiso para gestionar clientes.';
   if (error instanceof TenantError) return 'Organización no encontrada.';
   throw error;
 }
@@ -69,7 +69,7 @@ export async function createClientAction(
   formData: FormData,
 ): Promise<CreateClientState> {
   const user = await getCurrentUser();
-  if (!user) return { error: 'Tu sesión expiró. Volvé a iniciar sesión.' };
+  if (!user) return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
 
   const parsed = createSchema.safeParse({
     orgSlug: str(formData, 'orgSlug'),
@@ -77,7 +77,7 @@ export async function createClientAction(
     platform: str(formData, 'platform'),
   });
   if (!parsed.success) {
-    return { error: 'Ingresá un nombre y elegí una plataforma.' };
+    return { error: 'Ingresa un nombre y elige una plataforma.' };
   }
 
   try {

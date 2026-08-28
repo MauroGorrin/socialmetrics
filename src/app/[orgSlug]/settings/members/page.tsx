@@ -18,7 +18,7 @@ const ROLE_LABELS: Record<string, string> = {
 const NOTICES: Record<string, string> = {
   'ok:role': 'Rol actualizado.',
   'ok:removed': 'Miembro eliminado.',
-  'error:forbidden': 'No tenés permiso para esta acción.',
+  'error:forbidden': 'No tienes permiso para esta acción.',
   'error:missing': 'Ese miembro ya no existe.',
   'error:role': 'No se pudo cambiar el rol.',
   'error:remove': 'No se pudo eliminar al miembro.',

@@ -7,7 +7,7 @@ const BUTTON =
   'rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90';
 
 const ERRORS: Record<string, string> = {
-  invalid: 'Ingresá un email válido y tu contraseña.',
+  invalid: 'Ingresa un email válido y tu contraseña.',
   credentials: 'Email o contraseña incorrectos.',
 };
 
@@ -22,12 +22,12 @@ export default function SignInPage({
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-sm flex-col justify-center gap-6 p-6">
       <div>
         <h1 className="text-2xl font-bold text-[var(--fg)]">Iniciar sesión</h1>
-        <p className="mt-1 text-sm text-[var(--fg-muted)]">Accedé a tu panel de reportes.</p>
+        <p className="mt-1 text-sm text-[var(--fg-muted)]">Accede a tu panel de reportes.</p>
       </div>
 
       {searchParams.reset ? (
         <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--fg)]">
-          Contraseña actualizada. Iniciá sesión con la nueva.
+          Contraseña actualizada. Inicia sesión con la nueva.
         </p>
       ) : null}
 

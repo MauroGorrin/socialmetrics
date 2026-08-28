@@ -37,7 +37,7 @@ export async function createMetricAction(
   formData: FormData,
 ): Promise<AddMetricState> {
   const user = await getCurrentUser();
-  if (!user) return { error: 'Tu sesión expiró. Volvé a iniciar sesión.' };
+  if (!user) return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
 
   const parsed = schema.safeParse({
     orgSlug: str(formData, 'orgSlug'),
@@ -47,7 +47,7 @@ export async function createMetricAction(
     period: str(formData, 'period'),
   });
   if (!parsed.success) {
-    return { error: 'Completá cliente, métrica, valor y fecha.' };
+    return { error: 'Completa cliente, métrica, valor y fecha.' };
   }
 
   try {
@@ -73,7 +73,7 @@ export async function createMetricAction(
     });
   } catch (error) {
     if (error instanceof ForbiddenError || error instanceof TenantError) {
-      return { error: 'No tenés acceso a esta organización.' };
+      return { error: 'No tienes acceso a esta organización.' };
     }
     throw error;
   }

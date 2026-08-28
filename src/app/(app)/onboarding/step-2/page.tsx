@@ -17,7 +17,7 @@ export default function OnboardingStep2({
   const state = requireStep(2);
 
   return (
-    <WizardShell step={2} title="Agregá tu primer cliente" backHref="/onboarding/step-1">
+    <WizardShell step={2} title="Agrega tu primer cliente" backHref="/onboarding/step-1">
       <form action={submitClientAction} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
           Nombre del cliente
@@ -46,7 +46,7 @@ export default function OnboardingStep2({
         </label>
         {searchParams.error ? (
           <p role="alert" className="text-sm text-[var(--destructive)]">
-            Completá el nombre y la plataforma.
+            Completa el nombre y la plataforma.
           </p>
         ) : null}
         <button type="submit" className={`${WIZARD_PRIMARY} self-start`}>

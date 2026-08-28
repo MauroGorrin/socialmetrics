@@ -16,9 +16,9 @@ const PLATFORM_LABELS: Record<string, string> = {
 const dateFmt = new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const ERRORS: Record<string, string> = {
-  create: 'No se pudo crear el cliente. Revisá los datos.',
+  create: 'No se pudo crear el cliente. Revisa los datos.',
   missing: 'Ese cliente ya no existe.',
-  forbidden: 'No tenés permiso para gestionar clientes.',
+  forbidden: 'No tienes permiso para gestionar clientes.',
   delete: 'No se pudo eliminar el cliente.',
 };
 
@@ -53,7 +53,7 @@ export default async function ClientsPage({
 
       {clients.length === 0 ? (
         <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--fg-muted)]">
-          Todavía no cargaste clientes. Agregá el primero para empezar a generar reportes.
+          Todavía no cargaste clientes. Agrega el primero para empezar a generar reportes.
         </p>
       ) : (
         <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">

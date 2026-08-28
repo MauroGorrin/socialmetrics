@@ -46,12 +46,12 @@ export default async function ClientDetailPage({
       ) : null}
       {searchParams.error === 'save' ? (
         <p role="alert" className="text-sm text-[var(--destructive)]">
-          Revisá los datos e intentá de nuevo.
+          Revisa los datos e inténtalo de nuevo.
         </p>
       ) : null}
       {searchParams.error === 'forbidden' ? (
         <p role="alert" className="text-sm text-[var(--destructive)]">
-          No tenés permiso para editar clientes.
+          No tienes permiso para editar clientes.
         </p>
       ) : null}
 

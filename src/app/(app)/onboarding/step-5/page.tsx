@@ -9,7 +9,7 @@ export default function OnboardingStep5() {
     <WizardShell
       step={5}
       title="¡Listo!"
-      subtitle="Tu primer reporte está generado. Abrilo para verlo y compartirlo."
+      subtitle="Tu primer reporte está generado. Ábrelo para verlo y compartirlo."
       backHref="/onboarding/step-4"
     >
       <form action={finishOnboardingAction}>

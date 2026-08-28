@@ -7,9 +7,9 @@ import { getAccessibleOrg } from '@/server/queries/orgs';
 import { listReports, reportMonths } from '@/server/queries/reports';
 
 const ERRORS: Record<string, string> = {
-  period: 'Elegí un mes válido.',
-  failed: 'No pudimos generar el reporte. Probá de nuevo.',
-  forbidden: 'Necesitás rol de administrador para generar reportes.',
+  period: 'Elige un mes válido.',
+  failed: 'No pudimos generar el reporte. Vuelve a intentar.',
+  forbidden: 'Necesitas rol de administrador para generar reportes.',
 };
 
 function currentMonth(): string {

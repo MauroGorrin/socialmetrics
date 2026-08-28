@@ -75,7 +75,7 @@ export default async function DashboardPage({
 
       {clients.length === 0 ? (
         <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--fg-muted)]">
-          Agregá un cliente antes de cargar métricas.
+          Agrega un cliente antes de cargar métricas.
         </p>
       ) : (
         <MetricInputForm

@@ -8,7 +8,7 @@ export default function OnboardingStep3() {
   return (
     <WizardShell
       step={3}
-      title="Cargá métricas de ejemplo"
+      title="Carga métricas de ejemplo"
       subtitle={`Vamos a crear 30 métricas para ${state.clientName ?? 'tu cliente'} para que veas cómo se arma un reporte.`}
       backHref="/onboarding/step-2"
     >

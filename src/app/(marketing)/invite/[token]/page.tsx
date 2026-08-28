@@ -49,7 +49,7 @@ export default async function InvitePage({
       <form action={acceptInviteAction} className="flex flex-col gap-4">
         <input type="hidden" name="token" value={params.token} />
         <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
-          Elegí una contraseña
+          Elige una contraseña
           <input
             name="password"
             type="password"

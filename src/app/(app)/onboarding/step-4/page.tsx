@@ -12,14 +12,14 @@ export default function OnboardingStep4({ searchParams }: { searchParams: { erro
   return (
     <WizardShell
       step={4}
-      title="Generá tu primer reporte"
-      subtitle="Con las métricas cargadas ya podés generar el PDF del mes."
+      title="Genera tu primer reporte"
+      subtitle="Con las métricas cargadas ya puedes generar el PDF del mes."
       backHref="/onboarding/step-3"
     >
       <form action={generateOnboardingReportAction} className="flex flex-col gap-4">
         {searchParams.error ? (
           <p role="alert" className="text-sm text-[var(--destructive)]">
-            No pudimos generar el reporte. Probá de nuevo.
+            No pudimos generar el reporte. Vuelve a intentar.
           </p>
         ) : null}
         <button type="submit" className={`${WIZARD_PRIMARY} self-start`}>

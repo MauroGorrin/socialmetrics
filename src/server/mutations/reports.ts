@@ -148,7 +148,7 @@ export async function generateReport(input: {
     return { ok: true, data: { reportId, pdfPath } };
   } catch (error) {
     console.error('[report] generation failed', error);
-    return { ok: false, error: 'No pudimos generar el reporte. Probá de nuevo.' };
+    return { ok: false, error: 'No pudimos generar el reporte. Vuelve a intentar.' };
   }
 }
 
@@ -168,7 +168,7 @@ export async function sendReport(input: {
 }): Promise<Result<{ providerId: string; recipients: number; warning?: string }>> {
   const report = await getReport(input.orgId, input.reportId);
   if (!report?.pdfUrl) {
-    return { ok: false, error: 'Generá el reporte antes de enviarlo.' };
+    return { ok: false, error: 'Genera el reporte antes de enviarlo.' };
   }
 
   const admin = createAdminSupabase();

@@ -10,7 +10,7 @@ export default function OnboardingStep1({
   const state = requireStep(1);
 
   return (
-    <WizardShell step={1} title="¿Cómo se llama tu agencia?" subtitle="Vas a poder cambiarlo más tarde.">
+    <WizardShell step={1} title="¿Cómo se llama tu agencia?" subtitle="Podrás cambiarlo más tarde.">
       <form action={submitOrgNameAction} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
           Nombre de la agencia
@@ -25,7 +25,7 @@ export default function OnboardingStep1({
         </label>
         {searchParams.error ? (
           <p role="alert" className="text-sm text-[var(--destructive)]">
-            Ingresá un nombre.
+            Ingresa un nombre.
           </p>
         ) : null}
         <button type="submit" className={`${WIZARD_PRIMARY} self-start`}>

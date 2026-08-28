@@ -7,11 +7,11 @@ const BUTTON =
   'rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90';
 
 const ERRORS: Record<string, string> = {
-  invalid: 'Revisá los datos: nombre, email válido y contraseña de 8+ caracteres.',
-  failed: 'No pudimos crear la cuenta. Probá de nuevo.',
-  signup: 'No pudimos crear la cuenta. Probá de nuevo en unos minutos.',
-  ratelimited: 'Demasiados intentos. Esperá unos minutos y reintentá.',
-  exists: 'Ya existe una cuenta con ese email. Iniciá sesión.',
+  invalid: 'Revisa los datos: nombre, email válido y contraseña de 8+ caracteres.',
+  failed: 'No pudimos crear la cuenta. Vuelve a intentar.',
+  signup: 'No pudimos crear la cuenta. Vuelve a intentar en unos minutos.',
+  ratelimited: 'Demasiados intentos. Espera unos minutos y vuelve a intentar.',
+  exists: 'Ya existe una cuenta con ese email. Inicia sesión.',
 };
 
 export default function SignUpPage({ searchParams }: { searchParams: { error?: string } }) {
@@ -22,7 +22,7 @@ export default function SignUpPage({ searchParams }: { searchParams: { error?: s
       <div>
         <h1 className="text-2xl font-bold text-[var(--fg)]">Crear cuenta</h1>
         <p className="mt-1 text-sm text-[var(--fg-muted)]">
-          Empezá a generar reportes para tus clientes. Sin verificación por email.
+          Empieza a generar reportes para tus clientes. Sin verificación por email.
         </p>
       </div>
 
@@ -57,9 +57,9 @@ export default function SignUpPage({ searchParams }: { searchParams: { error?: s
       </form>
 
       <p className="text-sm text-[var(--fg-muted)]">
-        ¿Ya tenés cuenta?{' '}
+        ¿Ya tienes cuenta?{' '}
         <Link href="/auth/signin" className="text-[var(--fg)] underline">
-          Iniciá sesión
+          Inicia sesión
         </Link>
       </p>
     </main>
