@@ -28,6 +28,7 @@ export default async function OrgLayout({
   const nav = [
     { href: `${base}/dashboard`, label: 'Panel' },
     { href: `${base}/clients`, label: 'Clientes' },
+    { href: `${base}/metrics`, label: 'Métricas' },
     { href: `${base}/reports`, label: 'Reportes' },
     { href: `${base}/settings`, label: 'Ajustes' },
   ];

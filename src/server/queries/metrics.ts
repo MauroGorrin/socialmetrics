@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
+import { BASE_METRICS, type MetricKey, monthBounds } from '@/lib/metrics';
 import { db } from '@/server/db';
 import type { Metric } from '@/server/db/schema';
 import { clients, metrics } from '@/server/db/schema';
@@ -58,6 +59,39 @@ export async function listMetrics(orgId: string, options: ListOptions = {}): Pro
     hasPrev: page > 1,
     hasNext: page < pageCount,
   };
+}
+
+/**
+ * The month's total per base metric for one client — what the monthly entry
+ * grid pre-fills. Sums every row in the month so a client that had day-by-day
+ * entries still shows a correct starting figure.
+ */
+export async function monthlyMetricValues(
+  orgId: string,
+  clientId: string,
+  periodMonth: string,
+): Promise<Partial<Record<MetricKey, number>>> {
+  const { from, to } = monthBounds(periodMonth);
+  const rows = await db
+    .select({
+      name: metrics.metricName,
+      total: sql<string>`sum(${metrics.metricValue})`,
+    })
+    .from(metrics)
+    .where(
+      and(
+        eq(metrics.orgId, orgId),
+        eq(metrics.clientId, clientId),
+        inArray(metrics.metricName, [...BASE_METRICS]),
+        gte(metrics.period, from),
+        lt(metrics.period, to),
+      ),
+    )
+    .groupBy(metrics.metricName);
+
+  return Object.fromEntries(
+    rows.map((row) => [row.name, Number(row.total ?? 0)]),
+  ) as Partial<Record<MetricKey, number>>;
 }
 
 /** How many metrics the org has in total (ignoring any client filter). */

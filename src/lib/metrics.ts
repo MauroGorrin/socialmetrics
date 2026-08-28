@@ -139,6 +139,24 @@ export function formatMetric(key: MetricKey, value: number): string {
   }
 }
 
+/** First day of `periodMonth` (`YYYY-MM`) and of the next month, as ISO dates. */
+export function monthBounds(periodMonth: string): { from: string; to: string } {
+  const [year, month] = periodMonth.split('-').map(Number);
+  const from = new Date(Date.UTC(year, month - 1, 1));
+  const to = new Date(Date.UTC(year, month, 1));
+  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
+}
+
+/** `2026-08` → `2026-08-01`. */
+export function firstOfMonth(periodMonth: string): string {
+  return `${periodMonth}-01`;
+}
+
+/** The current month as `YYYY-MM`. */
+export function currentMonth(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
 /** `2026-08` → `2026-07`. */
 export function previousMonth(periodMonth: string): string {
   const [year, month] = periodMonth.split('-').map(Number);

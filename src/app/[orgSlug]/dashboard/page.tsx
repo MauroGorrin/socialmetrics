@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createMetricAction } from '@/app/[orgSlug]/dashboard/actions';
 import { KpiCards } from '@/components/app/kpi-cards';
@@ -69,7 +70,17 @@ export default async function DashboardPage({
 
   return (
     <section className="space-y-6">
-      <h1 className="text-2xl font-bold text-[var(--fg)]">Panel</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-[var(--fg)]">Panel</h1>
+        {clients.length > 0 ? (
+          <Link
+            href={`/${params.orgSlug}/metrics`}
+            className="rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90"
+          >
+            Cargar métricas del mes
+          </Link>
+        ) : null}
+      </div>
 
       <KpiCards items={kpis} />
 

@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gte, inArray, lt } from 'drizzle-orm';
+import { BASE_METRICS, firstOfMonth, type MetricKey, monthBounds } from '@/lib/metrics';
 import { db } from '@/server/db';
 import type { Metric } from '@/server/db/schema';
 import { metrics } from '@/server/db/schema';
@@ -47,6 +48,52 @@ export async function createMetric(input: NewMetric): Promise<Metric> {
     })
     .returning();
   return row;
+}
+
+/**
+ * Replace a client's whole month of base metrics with the figures from the
+ * monthly entry grid. Any existing rows for that client + month (whatever the
+ * day) are cleared first, then one row per provided value is written at the
+ * first of the month. The month always reflects exactly what the grid holds.
+ */
+export async function upsertMonthlyMetrics(input: {
+  orgId: string;
+  clientId: string;
+  actorId: string;
+  periodMonth: string;
+  values: Partial<Record<MetricKey, number>>;
+}): Promise<void> {
+  const { from, to } = monthBounds(input.periodMonth);
+  const period = firstOfMonth(input.periodMonth);
+
+  const rows = (Object.entries(input.values) as Array<[MetricKey, number | undefined]>)
+    .filter(([, value]) => value != null && Number.isFinite(value))
+    .map(([metricName, value]) => ({
+      orgId: input.orgId,
+      clientId: input.clientId,
+      createdBy: input.actorId,
+      updatedBy: input.actorId,
+      metricName,
+      metricValue: (value as number).toFixed(2),
+      period,
+    }));
+
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(metrics)
+      .where(
+        and(
+          eq(metrics.orgId, input.orgId),
+          eq(metrics.clientId, input.clientId),
+          inArray(metrics.metricName, [...BASE_METRICS]),
+          gte(metrics.period, from),
+          lt(metrics.period, to),
+        ),
+      );
+    if (rows.length > 0) {
+      await tx.insert(metrics).values(rows);
+    }
+  });
 }
 
 /** Delete a metric, returning the deleted row (for auditing), or `null`. */

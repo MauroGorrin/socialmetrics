@@ -7,6 +7,7 @@ import {
   isBaseMetric,
   type Kpis,
   type MetricKey,
+  monthBounds,
   monthLabel,
   monthsEndingAt,
   previousMonth,
@@ -130,14 +131,6 @@ export async function userIdForEmail(email: string): Promise<string | null> {
     .where(eq(users.email, email.toLowerCase()))
     .limit(1);
   return row?.id ?? null;
-}
-
-/** First day of `periodMonth` (`YYYY-MM`) and of the following month, as ISO dates. */
-export function monthBounds(periodMonth: string): { from: string; to: string } {
-  const [year, month] = periodMonth.split('-').map(Number);
-  const from = new Date(Date.UTC(year, month - 1, 1));
-  const to = new Date(Date.UTC(year, month, 1));
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 }
 
 /** Split summed-vs-averaged aggregate rows into the two buckets `computeKpis` wants. */
