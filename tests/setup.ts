@@ -26,7 +26,19 @@ type DbContext = {
   };
 };
 
+/**
+ * Guard against wiping a real database. These hooks TRUNCATE every table, so
+ * they only run against an obviously disposable local DB, or when the operator
+ * has explicitly opted in with VITEST_ALLOW_REMOTE_DB=1.
+ */
+function dbIsSafeToWipe(): boolean {
+  if (process.env.VITEST_ALLOW_REMOTE_DB === '1') return true;
+  const url = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL ?? '';
+  return url.includes('localhost') || url.includes('127.0.0.1') || url.includes('@db:');
+}
+
 async function loadDbContext(): Promise<DbContext | null> {
+  if (!dbIsSafeToWipe()) return null;
   try {
     const [dbModule, drizzle, schema] = await Promise.all([
       import('@/server/db'),

@@ -3,7 +3,10 @@ node_modules/
 .vercel/
 dist/
 .env
-.env.*.local
+.env.local
+.env*.local
+.env.development
+.env.production
 .DS_Store
 *.pem
 .vscode/settings.json
@@ -14,6 +17,8 @@ dist/
 coverage/
 playwright-report/
 test-results/
+*.tsbuildinfo
+next-env.d.ts.bak
 
 # Pre-existing marketing workspace (not part of the app)
 scrapling-env/
