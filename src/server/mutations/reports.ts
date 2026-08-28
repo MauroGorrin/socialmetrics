@@ -196,3 +196,39 @@ export async function sendReport(input: {
     },
   };
 }
+
+const SHARE_TTL_MS = 48 * 60 * 60 * 1000;
+
+/** Mint (or replace) a 48-hour public share token for a report. */
+export async function createShareLink(input: {
+  orgId: string;
+  actorId: string;
+  reportId: string;
+}): Promise<Result<{ token: string; url: string }>> {
+  const report = await getReport(input.orgId, input.reportId);
+  if (!report) return { ok: false, error: 'El reporte no existe.' };
+
+  const token = `${randomUUID()}${randomUUID()}`.replace(/-/g, '');
+  const now = new Date();
+
+  await db
+    .update(reports)
+    .set({
+      sharedToken: token,
+      sharedAt: now,
+      sharedExpiresAt: new Date(now.getTime() + SHARE_TTL_MS),
+      status: 'shared',
+      updatedAt: now,
+    })
+    .where(and(eq(reports.orgId, input.orgId), eq(reports.id, input.reportId)));
+
+  await db.insert(auditLogs).values({
+    orgId: input.orgId,
+    actorId: input.actorId,
+    action: 'share_report',
+    targetId: input.reportId,
+    metadata: { token },
+  });
+
+  return { ok: true, data: { token, url: `${SITE_URL}/public/reports/${token}` } };
+}

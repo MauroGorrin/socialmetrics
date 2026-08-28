@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
 import { ForbiddenError, requireRole, TenantError } from '@/server/auth/guards';
-import { generateReport, sendReport } from '@/server/mutations/reports';
+import { createShareLink, generateReport, sendReport } from '@/server/mutations/reports';
 
 const schema = z.object({
   orgSlug: z.string().min(1),
@@ -51,6 +51,37 @@ export async function generateReportAction(formData: FormData): Promise<void> {
     } else {
       throw error;
     }
+  }
+  redirect(target);
+}
+
+const shareSchema = z.object({ orgSlug: z.string().min(1), reportId: z.uuid() });
+
+/** Mint a public share link, then land back on the report with the token. */
+export async function createShareAction(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) redirect('/auth/signin');
+
+  const parsed = shareSchema.safeParse({
+    orgSlug: str(formData, 'orgSlug'),
+    reportId: str(formData, 'reportId'),
+  });
+  if (!parsed.success) redirect(`/${str(formData, 'orgSlug')}/reports`);
+
+  const base = `/${parsed.data.orgSlug}/reports/${parsed.data.reportId}`;
+  let target: string;
+  try {
+    const { org } = await requireRole(parsed.data.orgSlug, user.id, 'admin');
+    const result = await createShareLink({
+      orgId: org.id,
+      actorId: user.id,
+      reportId: parsed.data.reportId,
+    });
+    target = result.ok ? `${base}?shared=${result.data.token}` : `${base}?error=share`;
+  } catch (error) {
+    if (error instanceof ForbiddenError) target = `${base}?error=forbidden`;
+    else if (error instanceof TenantError) target = '/dashboard';
+    else throw error;
   }
   redirect(target);
 }

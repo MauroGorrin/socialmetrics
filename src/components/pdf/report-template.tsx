@@ -22,6 +22,10 @@ export type ReportData = {
   periodMonth: string;
   generatedAt: string;
   clients: ReportClient[];
+  /** Org logo for the public view. Omitted for the PDF (no network in print). */
+  logoUrl?: string | null;
+  /** Footer line for the public view (defaults to the org name). */
+  footer?: string | null;
 };
 
 export const REPORT_CSS = `
@@ -38,6 +42,8 @@ export const REPORT_CSS = `
   .report-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11px; }
   .report-table th, .report-table td { border: 1px solid #E2E8F0; padding: 4px 6px; text-align: left; }
   .report-table th { background: #F8FAFC; }
+  .report-logo { max-height: 40px; margin-bottom: 8px; }
+  .report-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #E2E8F0; font-size: 11px; color: #64748B; }
 `;
 
 function esc(value: string): string {
@@ -99,11 +105,17 @@ export function reportBodyHtml(data: ReportData): string {
     )
     .join('');
 
+  const logo = data.logoUrl
+    ? `<img class="report-logo" src="${esc(data.logoUrl)}" alt="${esc(data.orgName)}" />`
+    : '';
+  const footer = `<footer class="report-footer">${esc(data.footer || data.orgName)}</footer>`;
+
   return `<article class="report">
-    <header><h1>${esc(data.orgName)}</h1><p class="report-sub">Reporte mensual · ${esc(data.periodMonth)} · generado ${esc(data.generatedAt)}</p></header>
+    <header>${logo}<h1>${esc(data.orgName)}</h1><p class="report-sub">Reporte mensual · ${esc(data.periodMonth)} · generado ${esc(data.generatedAt)}</p></header>
     <section class="report-kpis">${kpis}</section>
     ${sections}
     <table class="report-table"><thead><tr><th>Cliente</th>${REPORT_METRICS.map((m) => `<th>${m.label}</th>`).join('')}</tr></thead><tbody>${tableRows}</tbody></table>
+    ${footer}
   </article>`;
 }
 

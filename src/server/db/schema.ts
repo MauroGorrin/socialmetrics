@@ -157,6 +157,7 @@ export const reports = pgTable(
     generatedAt: timestamptz('generated_at'),
     sharedToken: text('shared_token').unique(),
     sharedAt: timestamptz('shared_at'),
+    sharedExpiresAt: timestamptz('shared_expires_at'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
   },

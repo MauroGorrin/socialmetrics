@@ -1,0 +1,1 @@
+ALTER TABLE "report" ADD COLUMN "shared_expires_at" timestamp with time zone;
