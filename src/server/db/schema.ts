@@ -150,6 +150,8 @@ export const reports = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     periodMonth: text('period_month').notNull(),
+    /** Client ids this report covers; `null` means every client in the org. */
+    clientIds: jsonb('client_ids').$type<string[]>(),
     status: text('status').notNull().default('draft'),
     pdfUrl: text('pdf_url'),
     generatedAt: timestamptz('generated_at'),

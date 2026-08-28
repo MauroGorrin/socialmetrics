@@ -22,6 +22,13 @@
       "when": 1787918469132,
       "tag": "0002_charming_captain_america",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787920287600,
+      "tag": "0003_steep_warlock",
+      "breakpoints": true
     }
   ]
 }
