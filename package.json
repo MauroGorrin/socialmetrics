@@ -23,7 +23,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@sparticuz/chromium": "^149.0.0",
+    "@sparticuz/chromium-min": "149.0.0",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2",
     "@tanstack/react-query": "^5",

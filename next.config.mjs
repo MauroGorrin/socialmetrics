@@ -12,7 +12,11 @@ const nextConfig = {
   experimental: {
     // Puppeteer / the packaged Chromium have dynamic requires and their own
     // binary resolvers — keep them out of the bundle, load from node_modules.
-    serverComponentsExternalPackages: ['puppeteer', 'puppeteer-core', '@sparticuz/chromium'],
+    serverComponentsExternalPackages: [
+      'puppeteer',
+      'puppeteer-core',
+      '@sparticuz/chromium-min',
+    ],
   },
   async headers() {
     const csp = [
