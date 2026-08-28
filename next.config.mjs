@@ -10,9 +10,9 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    // Puppeteer has dynamic requires and ships its own Chromium resolver —
-    // keep it out of the bundle and load it from node_modules at runtime.
-    serverComponentsExternalPackages: ['puppeteer'],
+    // Puppeteer / the packaged Chromium have dynamic requires and their own
+    // binary resolvers — keep them out of the bundle, load from node_modules.
+    serverComponentsExternalPackages: ['puppeteer', 'puppeteer-core', '@sparticuz/chromium'],
   },
   async headers() {
     const csp = [

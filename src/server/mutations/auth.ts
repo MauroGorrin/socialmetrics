@@ -3,7 +3,7 @@ import 'server-only';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { createServerSupabase } from '@/lib/auth';
+import { createAdminSupabase, createServerSupabase } from '@/lib/auth';
 import { env } from '@/lib/env';
 import { db } from '@/server/db';
 import { memberships, organizations, users } from '@/server/db/schema';
@@ -112,7 +112,13 @@ function field(formData: FormData, name: string): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-/** Signup: create the Supabase user and trigger the verification email. */
+/**
+ * Signup: create the Supabase user with the email already confirmed, sign them
+ * in, bootstrap their personal org, and drop them into the onboarding wizard.
+ * No verification email — the MVP trades that friction for a frictionless first
+ * run; re-enable it by switching back to `supabase.auth.signUp` here and letting
+ * `/auth/callback` finish the flow.
+ */
 export async function signUpAction(formData: FormData): Promise<void> {
   'use server';
 
@@ -125,21 +131,38 @@ export async function signUpAction(formData: FormData): Promise<void> {
     redirect('/auth/signup?error=invalid');
   }
 
-  const supabase = createServerSupabase();
-  const { error } = await supabase.auth.signUp({
+  const admin = createAdminSupabase();
+  const { error: createError } = await admin.auth.admin.createUser({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: {
-      data: { name: parsed.data.name },
-      emailRedirectTo: `${SITE_URL}/auth/callback`,
-    },
+    email_confirm: true,
+    user_metadata: { name: parsed.data.name },
   });
-  if (error) {
-    const rateLimited = error.status === 429 || error.code === 'over_email_send_rate_limit';
-    redirect(`/auth/signup?error=${rateLimited ? 'ratelimited' : 'signup'}`);
+  if (createError) {
+    const code = createError.code ?? '';
+    const duplicate =
+      code === 'email_exists' ||
+      code === 'user_already_exists' ||
+      /already/i.test(createError.message);
+    const rateLimited = createError.status === 429;
+    redirect(`/auth/signup?error=${duplicate ? 'exists' : rateLimited ? 'ratelimited' : 'signup'}`);
   }
 
-  redirect('/auth/signup?sent=1');
+  const supabase = createServerSupabase();
+  const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+  if (signInError || !data.user) {
+    redirect('/auth/signin?reset=1');
+  }
+
+  await ensurePersonalOrg({
+    id: data.user.id,
+    email: data.user.email ?? parsed.data.email,
+    name: parsed.data.name,
+  });
+  redirect('/onboarding');
 }
 
 /** Sign in with email + password, then land on the user's org dashboard. */

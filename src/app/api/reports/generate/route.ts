@@ -9,6 +9,11 @@ import { generateReport } from '@/server/mutations/reports';
  * The org is resolved from the body's `orgSlug` through the guard.
  */
 
+// Headless Chromium PDF render needs a Node runtime and more than the default
+// serverless budget.
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 const schema = z.object({
   orgSlug: z.string().min(1),
   periodMonth: z.string().regex(/^\d{4}-\d{2}$/),

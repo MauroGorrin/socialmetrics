@@ -23,6 +23,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^149.0.0",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2",
     "@tanstack/react-query": "^5",
@@ -30,6 +31,7 @@
     "next": "14.2.35",
     "postgres": "^3.4.9",
     "puppeteer": "^25",
+    "puppeteer-core": "25.9.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "recharts": "^3",

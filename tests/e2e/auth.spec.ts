@@ -4,18 +4,14 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
 
 /**
- * E1-T4 — signup → email verification → auto-created org → login → session.
+ * E1-T4 — signup → auto-created org → session → login.
+ *
+ * The MVP signup is frictionless: no verification email. `signUpAction` creates
+ * the Supabase user with the email already confirmed, signs them in, bootstraps
+ * a personal organization, and lands them in the onboarding wizard.
  *
  * The Playwright process does not load `.env.local` (only `pnpm dev` does), so
  * we parse it here for the Supabase keys.
- *
- * The verification email is never read from an inbox: the service-role admin
- * API mints the same confirmation token the email carries, which is what
- * "clicking the link" resolves to. Supabase's built-in SMTP is rate-limited to
- * a couple of messages per hour, so the signup step tolerates a 429 from that
- * quota — the app has still done its job (called `signUp`); when the quota is
- * exhausted the pending user is created through the admin API so the rest of
- * the flow stays deterministic.
  */
 
 function loadEnvLocal(): void {
@@ -72,64 +68,30 @@ test.describe('auth flow', () => {
     return data.users.find((u) => u.email === target) ?? null;
   }
 
-  test('signup submits to Supabase and shows the verification-pending state', async ({ page }) => {
+  test('signup creates a confirmed user, a personal org, and enters onboarding', async ({
+    page,
+  }) => {
     await page.goto('/auth/signup');
     await page.fill('input[name="name"]', 'E2E Tester');
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', PASSWORD);
     await page.click('button[type="submit"]');
 
-    // Happy path lands on ?sent=1. This project uses Supabase's built-in SMTP
-    // (a couple of mails per hour), so a test loop almost always hits the send
-    // limit instead — the app still did its job; provision the pending user so
-    // the rest of the flow is deterministic.
-    await page.waitForURL(/\/auth\/signup\?(sent=1|error=)/);
+    // criterion: frictionless — straight into the wizard, no "check your email"
+    await page.waitForURL(/\/onboarding(\/step-1)?$/, { timeout: 90_000 });
 
-    if (page.url().includes('sent=1')) {
-      await expect(page.getByText(/correo de verificaci[oó]n/i)).toBeVisible();
-      const created = await findAuthUser(email);
-      expect(created, 'signup should have created a Supabase auth user').toBeTruthy();
-      expect(created?.email_confirmed_at ?? null, 'user should be unconfirmed').toBeNull();
-      userId = created?.id ?? null;
-      return;
-    }
-
-    await expect(page.locator('p[role="alert"]')).toBeVisible();
-    const { data, error } = await admin.auth.admin.createUser({
-      email,
-      password: PASSWORD,
-      email_confirm: false,
-      user_metadata: { name: 'E2E Tester' },
-    });
-    expect(error).toBeNull();
-    userId = data.user?.id ?? null;
-  });
-
-  test('the verification link verifies the session and auto-creates the org', async ({ page }) => {
-    expect(userId, 'previous test must have produced a user').toBeTruthy();
-
-    const { data, error } = await admin.auth.admin.generateLink({
-      type: 'signup',
-      email,
-      password: PASSWORD,
-    });
-    expect(error).toBeNull();
-    const tokenHash = data.properties?.hashed_token;
-    expect(tokenHash, 'admin.generateLink should return a hashed token').toBeTruthy();
-
-    await page.goto(`/auth/callback?token_hash=${tokenHash}&type=signup`);
-    await page.waitForURL(/\/[a-z0-9-]+\/dashboard$/, { timeout: 90_000 });
-
-    orgSlug = new URL(page.url()).pathname.split('/')[1] ?? null;
-    expect(orgSlug).toBeTruthy();
-    await expect(page.getByRole('button', { name: /Cerrar sesi[oó]n/i })).toBeVisible();
+    const created = await findAuthUser(email);
+    expect(created, 'signup should have created a Supabase auth user').toBeTruthy();
+    expect(created?.email_confirmed_at ?? null, 'user should be confirmed').not.toBeNull();
+    userId = created?.id ?? null;
 
     const { data: orgs } = await admin
       .from('organization')
       .select('id, slug, owner_id')
       .eq('owner_id', userId ?? '');
     expect(orgs?.length, 'exactly one personal org should exist').toBe(1);
-    expect(orgs?.[0]?.slug).toBe(orgSlug);
+    orgSlug = orgs?.[0]?.slug ?? null;
+    expect(orgSlug).toBeTruthy();
 
     const { data: members } = await admin
       .from('membership')
@@ -137,6 +99,17 @@ test.describe('auth flow', () => {
       .eq('user_id', userId ?? '');
     expect(members?.length).toBe(1);
     expect(members?.[0]?.role).toBe('owner');
+  });
+
+  test('a duplicate signup is rejected with a visible error', async ({ page }) => {
+    await page.goto('/auth/signup');
+    await page.fill('input[name="name"]', 'E2E Tester');
+    await page.fill('input[name="email"]', email);
+    await page.fill('input[name="password"]', PASSWORD);
+    await page.click('button[type="submit"]');
+
+    await page.waitForURL(/\/auth\/signup\?error=exists/, { timeout: 90_000 });
+    await expect(page.locator('p[role="alert"]')).toBeVisible();
   });
 
   test('login sets an HTTP-only session cookie, survives navigation, and clears on logout', async ({

@@ -2,11 +2,11 @@ import { generateOnboardingReportAction } from '@/app/(app)/onboarding/actions';
 import { WIZARD_PRIMARY, WizardShell } from '@/app/(app)/onboarding/wizard-shell';
 import { requireStep } from '@/lib/onboarding';
 
-export default function OnboardingStep4({
-  searchParams,
-}: {
-  searchParams: { error?: string };
-}) {
+// Report generation launches headless Chromium — well past the 15s default for
+// a serverless function. Give the action room to finish.
+export const maxDuration = 60;
+
+export default function OnboardingStep4({ searchParams }: { searchParams: { error?: string } }) {
   requireStep(4);
 
   return (
