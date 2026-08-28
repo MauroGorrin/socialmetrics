@@ -119,7 +119,7 @@ test.describe('auth flow', () => {
 
     orgSlug = new URL(page.url()).pathname.split('/')[1] ?? null;
     expect(orgSlug).toBeTruthy();
-    await expect(page.getByText(/Sesi[oó]n iniciada como/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Cerrar sesi[oó]n/i })).toBeVisible();
 
     const { data: orgs } = await admin
       .from('organization')

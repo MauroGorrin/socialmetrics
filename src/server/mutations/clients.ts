@@ -8,15 +8,22 @@ import { clients } from '@/server/db/schema';
 /**
  * Client writes. Every function is org-scoped: the `orgId` argument is part of
  * the WHERE clause on updates/deletes, so an id from another tenant simply
- * matches no row and the caller returns 404. Extended with the full CRUD +
- * pages in E1-T6.
+ * matches no row and the caller returns 404.
  */
+
+export type Platform = 'meta' | 'google_ads' | 'tiktok' | 'instagram';
 
 export type NewClient = {
   orgId: string;
   createdBy: string;
   name: string;
-  platform: 'meta' | 'google_ads' | 'tiktok' | 'instagram';
+  platform: Platform;
+};
+
+export type ClientPatch = {
+  name?: string;
+  platform?: Platform;
+  platformAccountId?: string | null;
 };
 
 export async function createClient(input: NewClient): Promise<Client> {
@@ -32,15 +39,20 @@ export async function createClient(input: NewClient): Promise<Client> {
   return row;
 }
 
-/** Update a client's name. `null` when no row in this org matches the id. */
+/** Update a client's editable fields. `null` when no row in this org matches. */
 export async function updateClient(
   orgId: string,
   clientId: string,
-  patch: { name: string },
+  patch: ClientPatch,
 ): Promise<Client | null> {
+  const set: Partial<typeof clients.$inferInsert> = { updatedAt: new Date() };
+  if (patch.name !== undefined) set.name = patch.name;
+  if (patch.platform !== undefined) set.platform = patch.platform;
+  if (patch.platformAccountId !== undefined) set.platformAccountId = patch.platformAccountId;
+
   const [row] = await db
     .update(clients)
-    .set({ name: patch.name, updatedAt: new Date() })
+    .set(set)
     .where(and(eq(clients.orgId, orgId), eq(clients.id, clientId), isNull(clients.deletedAt)))
     .returning();
   return row ?? null;
