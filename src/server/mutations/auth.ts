@@ -135,7 +135,8 @@ export async function signUpAction(formData: FormData): Promise<void> {
     },
   });
   if (error) {
-    redirect(`/auth/signup?error=${error.status === 429 ? 'ratelimited' : 'failed'}`);
+    const rateLimited = error.status === 429 || error.code === 'over_email_send_rate_limit';
+    redirect(`/auth/signup?error=${rateLimited ? 'ratelimited' : 'signup'}`);
   }
 
   redirect('/auth/signup?sent=1');

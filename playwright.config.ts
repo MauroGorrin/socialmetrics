@@ -20,9 +20,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev',
+    // A production build, not `pnpm dev`: the dev server's per-route JIT
+    // compilation makes navigations unpredictably slow and the suite flaky.
+    command: 'pnpm build && pnpm start',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 240_000,
   },
 });

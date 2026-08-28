@@ -9,6 +9,7 @@ const BUTTON =
 const ERRORS: Record<string, string> = {
   invalid: 'Revisá los datos: nombre, email válido y contraseña de 8+ caracteres.',
   failed: 'No pudimos crear la cuenta. Probá de nuevo.',
+  signup: 'No pudimos crear la cuenta. Probá de nuevo en unos minutos.',
   ratelimited: 'Demasiados intentos. Esperá unos minutos y reintentá.',
 };
 
