@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 /**
  * Edge middleware: refresh the Supabase session on every protected request and
@@ -44,7 +45,35 @@ async function getSession(supabase: SupabaseClient) {
   return user;
 }
 
+const AUTH_ATTEMPTS_PER_MINUTE = 10;
+
+/**
+ * Rate-limit sign-in POSTs by client IP. The IP is only knowable from the
+ * proxy's forwarded header, so a request without one (direct localhost, tests
+ * that don't simulate a client) is not limited — there is nothing to key on.
+ */
+function rateLimitSignIn(request: NextRequest): NextResponse | null {
+  if (request.method !== 'POST' || request.nextUrl.pathname !== '/auth/signin') return null;
+
+  // Only the proxy's forwarded header identifies the client; a direct request
+  // (localhost, no proxy) has no key to limit on and is left alone.
+  const forwarded = request.headers.get('x-forwarded-for');
+  const ip = forwarded?.split(',')[0]?.trim();
+  if (!ip) return null;
+
+  const result = rateLimit(`signin:${ip}`, AUTH_ATTEMPTS_PER_MINUTE, 60_000);
+  if (result.ok) return null;
+
+  return new NextResponse('Too many attempts. Try again in 60 seconds.', {
+    status: 429,
+    headers: { 'Retry-After': String(result.retryAfterSeconds || 60) },
+  });
+}
+
 export async function middleware(request: NextRequest) {
+  const throttled = rateLimitSignIn(request);
+  if (throttled) return throttled;
+
   if (isPublicPath(request.nextUrl.pathname)) {
     return NextResponse.next();
   }

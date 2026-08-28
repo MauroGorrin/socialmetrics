@@ -6,7 +6,9 @@ export default defineConfig({
   // (each seeds and tears down its own users/orgs), so they must run serially.
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // The suite runs against a shared remote Supabase (Postgres + GoTrue); one
+  // retry absorbs the occasional upstream latency spike or rate-limit blip.
+  retries: process.env.CI ? 2 : 1,
   workers: 1,
   reporter: process.env.CI ? 'html' : 'list',
   use: {
