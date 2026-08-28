@@ -2,6 +2,7 @@ import { and, eq, isNotNull } from 'drizzle-orm';
 import { db } from '@/server/db';
 import { memberships, organizations } from '@/server/db/schema';
 import type { Organization, Role } from '@/server/db/schema';
+import { checkOrgAccess } from '@/server/auth/guards';
 
 /**
  * Bootstrap queries — the two lookups that run before an org context exists:
@@ -33,6 +34,21 @@ export async function getOrgBySlug(slug: string): Promise<Organization | null> {
     .limit(1);
 
   return org ?? null;
+}
+
+/**
+ * Resolve a slug to an org **only if** the user may access it, returning the
+ * org together with the user's role. `null` when the org is missing or the user
+ * is not a member — callers surface that as a 404, never a 403. This is the
+ * front door for every org-scoped query; the raw {@link getOrgBySlug} above is
+ * for the unauthenticated public-report path only.
+ */
+export async function getAccessibleOrg(
+  slug: string,
+  userId: string,
+): Promise<{ org: Organization; role: Role } | null> {
+  const ctx = await checkOrgAccess(slug, userId);
+  return ctx ? { org: ctx.org, role: ctx.role } : null;
 }
 
 /** Whether the user is an accepted member of the org (any role). */

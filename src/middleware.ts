@@ -73,6 +73,9 @@ export async function middleware(request: NextRequest) {
   const user = await getSession(supabase);
 
   if (!user) {
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const signInUrl = request.nextUrl.clone();
     signInUrl.pathname = '/auth/signin';
     signInUrl.search = '';
