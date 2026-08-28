@@ -39,6 +39,8 @@ export default async function ReportViewPage({
     generatedAt: report.generatedAt
       ? report.generatedAt.toISOString().slice(0, 10)
       : 'sin generar',
+    logoUrl: access.org.logoUrl,
+    footer: access.org.footerText ?? access.org.name,
     clients: clientMetrics.map((client) => ({
       name: client.clientName,
       values: Object.fromEntries(

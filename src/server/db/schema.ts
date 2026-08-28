@@ -46,6 +46,7 @@ export const organizations = pgTable(
     slug: text('slug').notNull().unique(),
     plan: text('plan').notNull().default('freelancer'),
     logoUrl: text('logo_url'),
+    footerText: text('footer_text'),
     ownerId: uuid('owner_id')
       .notNull()
       .references(() => users.id),

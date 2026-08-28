@@ -43,6 +43,13 @@
       "when": 1787921581006,
       "tag": "0005_hard_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787922166786,
+      "tag": "0006_parched_purple_man",
+      "breakpoints": true
     }
   ]
 }

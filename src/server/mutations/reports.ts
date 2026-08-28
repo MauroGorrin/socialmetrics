@@ -12,7 +12,7 @@ import { sendEmail } from '@/lib/email';
 import { env } from '@/lib/env';
 import { htmlToPdf } from '@/lib/pdf-generator';
 import { db } from '@/server/db';
-import { auditLogs, emailEvents, reports } from '@/server/db/schema';
+import { auditLogs, emailEvents, organizations, reports } from '@/server/db/schema';
 import { getReport, reportMetricsByClient } from '@/server/queries/reports';
 
 const SITE_URL = env.SESSION_URL ?? 'http://localhost:3000';
@@ -29,14 +29,16 @@ const STORAGE_BUCKET = 'reports';
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
 function buildReportData(
-  orgName: string,
+  branding: { orgName: string; logoDataUri: string | null; footer: string | null },
   periodMonth: string,
   clientMetrics: Awaited<ReturnType<typeof reportMetricsByClient>>,
 ): ReportData {
   return {
-    orgName,
+    orgName: branding.orgName,
     periodMonth,
     generatedAt: new Date().toISOString().slice(0, 10),
+    logoUrl: branding.logoDataUri,
+    footer: branding.footer,
     clients: clientMetrics.map((client) => ({
       name: client.clientName,
       values: Object.fromEntries(
@@ -44,6 +46,21 @@ function buildReportData(
       ) as ReportData['clients'][number]['values'],
     })),
   };
+}
+
+/** The org's logo as an inline `data:` URI (no network call in the PDF), or null. */
+async function logoDataUri(logoUrl: string | null): Promise<string | null> {
+  if (!logoUrl) return null;
+  try {
+    const response = await fetch(logoUrl);
+    if (!response.ok) return null;
+    const contentType = response.headers.get('content-type') ?? 'image/png';
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length === 0 || bytes.length > 2_000_000) return null;
+    return `data:${contentType};base64,${bytes.toString('base64')}`;
+  } catch {
+    return null;
+  }
 }
 
 export async function generateReport(input: {
@@ -71,13 +88,27 @@ export async function generateReport(input: {
   }
 
   try {
+    const [org] = await db
+      .select({ logoUrl: organizations.logoUrl, footerText: organizations.footerText })
+      .from(organizations)
+      .where(eq(organizations.id, input.orgId))
+      .limit(1);
+
     const clientMetrics = await reportMetricsByClient(
       input.orgId,
       clientIds ?? [],
       input.periodMonth,
     );
     const html = renderReportDocument(
-      buildReportData(input.orgName, input.periodMonth, clientMetrics),
+      buildReportData(
+        {
+          orgName: input.orgName,
+          logoDataUri: await logoDataUri(org?.logoUrl ?? null),
+          footer: org?.footerText ?? null,
+        },
+        input.periodMonth,
+        clientMetrics,
+      ),
     );
     const pdf = await htmlToPdf(html);
 

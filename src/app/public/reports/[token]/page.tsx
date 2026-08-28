@@ -25,7 +25,7 @@ export default async function PublicReportPage({ params }: { params: { token: st
       ? shared.report.generatedAt.toISOString().slice(0, 10)
       : '—',
     logoUrl: shared.org.logoUrl,
-    footer: `${shared.org.name} · Reporte compartido`,
+    footer: shared.org.footerText ?? `${shared.org.name} · Reporte compartido`,
     clients: clientMetrics.map((client) => ({
       name: client.clientName,
       values: Object.fromEntries(
