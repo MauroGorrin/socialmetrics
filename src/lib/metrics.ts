@@ -34,6 +34,18 @@ export const METRIC_LABELS: Record<MetricKey, string> = {
   roas: 'ROAS',
 };
 
+/** Rotating palette for comparing clients on a single chart. */
+export const CLIENT_CHART_COLORS = [
+  'var(--client-1)',
+  'var(--client-2)',
+  'var(--client-3)',
+  'var(--client-4)',
+  'var(--client-5)',
+  'var(--client-6)',
+  'var(--client-7)',
+  'var(--client-8)',
+];
+
 /** The chart colour for each metric — CSS custom properties from globals.css. */
 export const METRIC_CHART_COLOR: Record<MetricKey, string> = {
   impressions: 'var(--chart-impressions)',
@@ -203,6 +215,11 @@ export function shortMonthLabel(periodMonth: string): string {
   const [year, month] = periodMonth.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, 1));
   return new Intl.DateTimeFormat('es', { month: 'short', timeZone: 'UTC' }).format(date);
+}
+
+/** Combine a per-month KPI map into one figure for the whole window. */
+export function aggregateKpis(byMonth: Record<string, Kpis>, months: string[]): Kpis {
+  return months.reduce((acc, month) => addKpis(acc, byMonth[month] ?? emptyKpis()), emptyKpis());
 }
 
 /** One metric's value across the given months, ready for a chart. */

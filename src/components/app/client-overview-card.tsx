@@ -84,7 +84,7 @@ export function ClientOverviewCard({
         </>
       ) : (
         <p className="mt-4 flex-1 text-sm text-[var(--fg-muted)]">
-          Sin datos cargados para este mes.
+          Sin datos en este período.
         </p>
       )}
 

@@ -102,11 +102,11 @@ test.describe('dashboard overview', () => {
     await page.waitForURL(new RegExp(`/${slug}/dashboard$`), { timeout: 90_000 });
 
     // A card per client; no metrics yet → the no-data state + report "Sin generar".
-    await page.goto(`/${slug}/dashboard?month=${MONTH}`);
+    await page.goto(`/${slug}/dashboard?month=${MONTH}&period=1`);
     const cards = page.locator('article');
     await expect(cards).toHaveCount(2);
-    await expect(page.getByText('Cliente Uno')).toBeVisible();
-    await expect(page.getByText('Sin datos cargados para este mes').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Cliente Uno' })).toBeVisible();
+    await expect(page.getByText('Sin datos en este período.').first()).toBeVisible();
     await expect(page.getByText('Sin generar')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Generar reporte' })).toBeVisible();
 
@@ -117,16 +117,17 @@ test.describe('dashboard overview', () => {
       { org_id: orgId, client_id: clientUnoId, metric_name: 'spend', metric_value: 300, period: `${MONTH}-01`, created_by: userId },
     ]);
 
-    await page.goto(`/${slug}/dashboard?month=${MONTH}`);
+    await page.goto(`/${slug}/dashboard?month=${MONTH}&period=1`);
     const unoCard = page.locator('article', { hasText: 'Cliente Uno' });
     await expect(unoCard).toContainText('12.000');
     await expect(unoCard).toContainText('4%'); // CTR 480 / 12000
     await expect(unoCard.getByRole('link', { name: 'Editar datos' })).toBeVisible();
 
-    // Month picker moves the view.
-    await page.goto(`/${slug}/dashboard`);
-    await page.fill('input[name="month"]', MONTH);
-    await page.getByRole('button', { name: 'Ver' }).click();
-    await page.waitForURL(new RegExp(`month=${MONTH}`));
+    // The client comparison shows a bar per client.
+    await expect(page.getByText('Comparativa entre clientes · el mes')).toBeVisible();
+
+    // The period selector moves the view.
+    await page.getByRole('button', { name: '12 meses' }).click();
+    await page.waitForURL(/period=12/);
   });
 });
