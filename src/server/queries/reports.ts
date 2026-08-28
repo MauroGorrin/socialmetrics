@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import { createAdminSupabase } from '@/lib/auth';
 import {
   computeKpis,
@@ -161,7 +161,12 @@ function splitAggregates(
   return out;
 }
 
-export type ReportClientKpis = { clientId: string; clientName: string; kpis: Kpis };
+export type ReportClientKpis = {
+  clientId: string;
+  clientName: string;
+  clientPlatform: string;
+  kpis: Kpis;
+};
 
 /**
  * KPIs per client for one month. Base metrics are summed, ratio metrics
@@ -174,12 +179,12 @@ export async function clientKpisForMonth(
   periodMonth: string,
 ): Promise<ReportClientKpis[]> {
   const activeClients = await db
-    .select({ id: clients.id, name: clients.name })
+    .select({ id: clients.id, name: clients.name, platform: clients.platform })
     .from(clients)
     .where(
       clientIds.length > 0
-        ? and(eq(clients.orgId, orgId), inArray(clients.id, clientIds))
-        : eq(clients.orgId, orgId),
+        ? and(eq(clients.orgId, orgId), isNull(clients.deletedAt), inArray(clients.id, clientIds))
+        : and(eq(clients.orgId, orgId), isNull(clients.deletedAt)),
     )
     .orderBy(clients.name);
 
@@ -211,8 +216,82 @@ export async function clientKpisForMonth(
   return activeClients.map((client) => ({
     clientId: client.id,
     clientName: client.name,
+    clientPlatform: client.platform,
     kpis: byClient.get(client.id) ?? computeKpis({}),
   }));
+}
+
+export type ClientMonthlySeries = {
+  clientId: string;
+  clientName: string;
+  clientPlatform: string;
+  byMonth: Record<string, Kpis>;
+};
+
+/**
+ * Every active client's KPIs for each of the given months — one query for the
+ * whole dashboard's per-client charts. Clients with no data still appear.
+ */
+export async function clientMonthlySeries(
+  orgId: string,
+  months: string[],
+): Promise<ClientMonthlySeries[]> {
+  const activeClients = await db
+    .select({ id: clients.id, name: clients.name, platform: clients.platform })
+    .from(clients)
+    .where(and(eq(clients.orgId, orgId), isNull(clients.deletedAt)))
+    .orderBy(clients.name);
+
+  if (activeClients.length === 0 || months.length === 0) {
+    return activeClients.map((client) => ({
+      clientId: client.id,
+      clientName: client.name,
+      clientPlatform: client.platform,
+      byMonth: {},
+    }));
+  }
+
+  const from = monthBounds(months[0]).from;
+  const to = monthBounds(months[months.length - 1]).to;
+  const rows = await db
+    .select({
+      clientId: metrics.clientId,
+      month: sql<string>`to_char(${metrics.period}, 'YYYY-MM')`,
+      name: metrics.metricName,
+      sum: sql<string>`sum(${metrics.metricValue})`,
+      avg: sql<string>`avg(${metrics.metricValue})`,
+    })
+    .from(metrics)
+    .where(
+      and(
+        eq(metrics.orgId, orgId),
+        gte(metrics.period, from),
+        lt(metrics.period, to),
+        inArray(
+          metrics.clientId,
+          activeClients.map((c) => c.id),
+        ),
+      ),
+    )
+    .groupBy(metrics.clientId, sql`to_char(${metrics.period}, 'YYYY-MM')`, metrics.metricName);
+
+  // key rows as `clientId|month` for splitAggregates, then unpack.
+  const combined = splitAggregates(
+    rows.map((row) => ({ key: `${row.clientId}|${row.month}`, name: row.name, sum: row.sum, avg: row.avg })),
+  );
+
+  return activeClients.map((client) => {
+    const byMonth: Record<string, Kpis> = {};
+    for (const month of months) {
+      byMonth[month] = combined.get(`${client.id}|${month}`) ?? computeKpis({});
+    }
+    return {
+      clientId: client.id,
+      clientName: client.name,
+      clientPlatform: client.platform,
+      byMonth,
+    };
+  });
 }
 
 /** Combined org KPIs for each of the given months (`YYYY-MM`), keyed by month. */

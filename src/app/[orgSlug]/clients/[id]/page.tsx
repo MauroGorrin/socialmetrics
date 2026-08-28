@@ -1,13 +1,19 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { deleteClientAction, updateClientAction } from '@/app/[orgSlug]/clients/actions';
+import { ExportCsvButton } from '@/components/app/export-csv-button';
+import { KpiCard } from '@/components/app/kpi-card';
+import { TrendChart } from '@/components/app/trend-chart';
 import { getCurrentUser } from '@/lib/auth';
 import {
   currentMonth,
   formatMetric,
+  METRIC_LABELS,
   type MetricKey,
+  metricSeries,
   monthLabel,
   monthsEndingAt,
+  previousMonth,
 } from '@/lib/metrics';
 import { getClient } from '@/server/queries/clients';
 import { getAccessibleOrg } from '@/server/queries/orgs';
@@ -24,16 +30,10 @@ const PLATFORM_OPTIONS = [
 ];
 const PLATFORM_LABELS = Object.fromEntries(PLATFORM_OPTIONS.map((o) => [o.value, o.label]));
 
-const HISTORY_METRICS: MetricKey[] = ['impressions', 'clicks', 'ctr', 'spend', 'cpl', 'roas'];
-const HISTORY_LABELS: Record<string, string> = {
-  impressions: 'Impresiones',
-  clicks: 'Clics',
-  ctr: 'CTR',
-  spend: 'Inversión',
-  cpl: 'CPL',
-  roas: 'ROAS',
-};
-const HISTORY_MONTHS = 4;
+const KPI_METRICS: MetricKey[] = ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'roas'];
+const CHART_METRICS: MetricKey[] = ['impressions', 'clicks', 'spend', 'ctr', 'conversions', 'roas'];
+const TABLE_METRICS: MetricKey[] = ['impressions', 'clicks', 'ctr', 'spend', 'cpl', 'roas'];
+const HISTORY_MONTHS = 12;
 
 export default async function ClientDetailPage({
   params,
@@ -51,10 +51,13 @@ export default async function ClientDetailPage({
   const client = await getClient(access.org.id, params.id);
   if (!client) notFound();
 
-  const months = monthsEndingAt(currentMonth(), HISTORY_MONTHS);
-  const history = await orgKpisByMonth(access.org.id, [client.id], months);
-  const rows = [...months].reverse().map((month) => ({ month, kpis: history[month] }));
-  const anyData = rows.some(
+  const month = currentMonth();
+  const prevMonth = previousMonth(month);
+  const months = monthsEndingAt(month, HISTORY_MONTHS);
+  const byMonth = await orgKpisByMonth(access.org.id, [client.id], months);
+
+  const tableRows = [...months].reverse().map((m) => ({ month: m, kpis: byMonth[m] }));
+  const anyData = tableRows.some(
     (r) =>
       r.kpis.impressions +
         r.kpis.clicks +
@@ -64,8 +67,13 @@ export default async function ClientDetailPage({
       0,
   );
 
+  const csvRows = tableRows.map((r) => ({
+    Mes: r.month,
+    ...Object.fromEntries(TABLE_METRICS.map((key) => [METRIC_LABELS[key], r.kpis[key]])),
+  }));
+
   return (
-    <section className="mx-auto max-w-3xl space-y-8">
+    <section className="mx-auto max-w-4xl space-y-8">
       <div>
         <Link
           href={`/${params.orgSlug}/clients`}
@@ -81,7 +89,7 @@ export default async function ClientDetailPage({
             </p>
           </div>
           <Link
-            href={`/${params.orgSlug}/metrics?client=${client.id}&month=${currentMonth()}`}
+            href={`/${params.orgSlug}/metrics?client=${client.id}&month=${month}`}
             className="rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90"
           >
             Cargar métricas
@@ -105,46 +113,81 @@ export default async function ClientDetailPage({
         </p>
       ) : null}
 
-      {/* Performance */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
-          Últimos meses
-        </h2>
-        {anyData ? (
-          <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-[var(--border)] text-[var(--fg-muted)]">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Mes</th>
-                  {HISTORY_METRICS.map((key) => (
-                    <th key={key} className="px-4 py-2 text-right font-medium">
-                      {HISTORY_LABELS[key]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {rows.map((row) => (
-                  <tr key={row.month}>
-                    <td className="whitespace-nowrap px-4 py-2 text-[var(--fg)]">
-                      {monthLabel(row.month)}
-                    </td>
-                    {HISTORY_METRICS.map((key) => (
-                      <td key={key} className="px-4 py-2 text-right text-[var(--fg)]">
-                        {formatMetric(key, row.kpis[key])}
-                      </td>
+      {anyData ? (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {KPI_METRICS.map((key) => (
+              <KpiCard
+                key={key}
+                metricKey={key}
+                value={byMonth[month]?.[key] ?? 0}
+                previous={byMonth[prevMonth]?.[key] ?? 0}
+              />
+            ))}
+          </div>
+
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+              Tendencia · últimos {HISTORY_MONTHS} meses
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {CHART_METRICS.map((key) => (
+                <div
+                  key={key}
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+                >
+                  <p className="mb-2 text-sm font-medium text-[var(--fg)]">{METRIC_LABELS[key]}</p>
+                  <TrendChart data={metricSeries(byMonth, months, key)} metricKey={key} height={150} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+                Detalle por mes
+              </h2>
+              <ExportCsvButton
+                rows={csvRows}
+                filename={`${client.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-metricas.csv`}
+              />
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-[var(--border)] text-[var(--fg-muted)]">
+                  <tr>
+                    <th className="px-4 py-2 font-medium">Mes</th>
+                    {TABLE_METRICS.map((key) => (
+                      <th key={key} className="px-4 py-2 text-right font-medium">
+                        {METRIC_LABELS[key]}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {tableRows.map((row) => (
+                    <tr key={row.month}>
+                      <td className="whitespace-nowrap px-4 py-2 text-[var(--fg)]">
+                        {monthLabel(row.month)}
+                      </td>
+                      {TABLE_METRICS.map((key) => (
+                        <td key={key} className="px-4 py-2 text-right text-[var(--fg)]">
+                          {formatMetric(key, row.kpis[key])}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        ) : (
-          <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--fg-muted)]">
-            Sin métricas cargadas para este cliente todavía.
-          </p>
-        )}
-      </div>
+        </>
+      ) : (
+        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--fg-muted)]">
+          Sin métricas cargadas para este cliente todavía.
+        </p>
+      )}
 
       {/* Client data */}
       <div className="space-y-4 border-t border-[var(--border)] pt-6">
@@ -152,7 +195,7 @@ export default async function ClientDetailPage({
           Datos del cliente
         </h2>
 
-        <form action={updateClientAction} className="flex flex-col gap-4">
+        <form action={updateClientAction} className="flex max-w-xl flex-col gap-4">
           <input type="hidden" name="orgSlug" value={params.orgSlug} />
           <input type="hidden" name="clientId" value={client.id} />
 

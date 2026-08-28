@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { MetricDelta } from '@/components/app/metric-delta';
+import { Sparkline, type TrendPoint } from '@/components/app/trend-chart';
 import { formatMetric, type Kpis, type MetricKey } from '@/lib/metrics';
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -25,10 +26,20 @@ type Props = {
   kpis: Kpis;
   previous: Kpis;
   hasData: boolean;
+  /** Impressions across the dashboard's window, for the card sparkline. */
+  series?: TrendPoint[];
 };
 
 /** One client's month at a glance: headline KPIs with deltas + next actions. */
-export function ClientOverviewCard({ orgSlug, month, client, kpis, previous, hasData }: Props) {
+export function ClientOverviewCard({
+  orgSlug,
+  month,
+  client,
+  kpis,
+  previous,
+  hasData,
+  series,
+}: Props) {
   const detailHref = `/${orgSlug}/clients/${client.id}`;
   const loadHref = `/${orgSlug}/metrics?client=${client.id}&month=${month}`;
 
@@ -49,21 +60,28 @@ export function ClientOverviewCard({ orgSlug, month, client, kpis, previous, has
       </div>
 
       {hasData ? (
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-          {CARD_METRICS.map((key) => (
-            <div key={key}>
-              <dt className="text-[11px] uppercase tracking-wide text-[var(--fg-muted)]">
-                {SHORT_LABELS[key]}
-              </dt>
-              <dd className="mt-0.5 flex items-baseline gap-2">
-                <span className="text-lg font-bold text-[var(--fg)]">
-                  {formatMetric(key, kpis[key])}
-                </span>
-                <MetricDelta metricKey={key} current={kpis[key]} previous={previous[key]} />
-              </dd>
+        <>
+          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+            {CARD_METRICS.map((key) => (
+              <div key={key}>
+                <dt className="text-[11px] uppercase tracking-wide text-[var(--fg-muted)]">
+                  {SHORT_LABELS[key]}
+                </dt>
+                <dd className="mt-0.5 flex items-baseline gap-2">
+                  <span className="text-lg font-bold text-[var(--fg)]">
+                    {formatMetric(key, kpis[key])}
+                  </span>
+                  <MetricDelta metricKey={key} current={kpis[key]} previous={previous[key]} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {series && series.length > 1 ? (
+            <div className="mt-3">
+              <Sparkline data={series} metricKey="impressions" height={36} />
             </div>
-          ))}
-        </dl>
+          ) : null}
+        </>
       ) : (
         <p className="mt-4 flex-1 text-sm text-[var(--fg-muted)]">
           Sin datos cargados para este mes.

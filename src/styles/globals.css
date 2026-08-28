@@ -20,6 +20,16 @@
   --destructive: #dc2626;
   --success: #16a34a;
   --warning: #ea580c;
+
+  /* Chart series — one saturated mid-tone per metric, legible on both themes. */
+  --chart-impressions: #3b82f6;
+  --chart-clicks: #8b5cf6;
+  --chart-spend: #f59e0b;
+  --chart-conversions: #10b981;
+  --chart-conversion_value: #14b8a6;
+  --chart-ctr: #06b6d4;
+  --chart-cpl: #f97316;
+  --chart-roas: #ec4899;
 }
 
 :root[data-theme="dark"] {

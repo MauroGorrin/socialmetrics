@@ -34,6 +34,18 @@ export const METRIC_LABELS: Record<MetricKey, string> = {
   roas: 'ROAS',
 };
 
+/** The chart colour for each metric — CSS custom properties from globals.css. */
+export const METRIC_CHART_COLOR: Record<MetricKey, string> = {
+  impressions: 'var(--chart-impressions)',
+  clicks: 'var(--chart-clicks)',
+  spend: 'var(--chart-spend)',
+  conversions: 'var(--chart-conversions)',
+  conversion_value: 'var(--chart-conversion_value)',
+  ctr: 'var(--chart-ctr)',
+  cpl: 'var(--chart-cpl)',
+  roas: 'var(--chart-roas)',
+};
+
 /** Ratios where a smaller number is the better result (only CPL). */
 export const LOWER_IS_BETTER: Partial<Record<MetricKey, boolean>> = { cpl: true };
 
@@ -191,4 +203,16 @@ export function shortMonthLabel(periodMonth: string): string {
   const [year, month] = periodMonth.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, 1));
   return new Intl.DateTimeFormat('es', { month: 'short', timeZone: 'UTC' }).format(date);
+}
+
+/** One metric's value across the given months, ready for a chart. */
+export function metricSeries(
+  monthly: Record<string, Kpis>,
+  months: string[],
+  metricKey: MetricKey,
+): Array<{ label: string; value: number }> {
+  return months.map((month) => ({
+    label: shortMonthLabel(month),
+    value: monthly[month]?.[metricKey] ?? 0,
+  }));
 }

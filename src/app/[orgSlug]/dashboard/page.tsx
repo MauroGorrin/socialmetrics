@@ -2,21 +2,24 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { generateReportAction } from '@/app/[orgSlug]/reports/actions';
 import { ClientOverviewCard } from '@/components/app/client-overview-card';
-import { MetricDelta } from '@/components/app/metric-delta';
+import { KpiCard } from '@/components/app/kpi-card';
+import { RangePicker } from '@/components/app/range-picker';
+import { TrendChart } from '@/components/app/trend-chart';
 import { getCurrentUser } from '@/lib/auth';
 import {
   addKpis,
   currentMonth,
   emptyKpis,
-  formatMetric,
   type Kpis,
+  METRIC_LABELS,
   type MetricKey,
+  metricSeries,
   monthLabel,
+  monthsEndingAt,
   previousMonth,
 } from '@/lib/metrics';
-import { listClients } from '@/server/queries/clients';
 import { getAccessibleOrg } from '@/server/queries/orgs';
-import { clientKpisForMonth, listReports } from '@/server/queries/reports';
+import { clientMonthlySeries, listReports } from '@/server/queries/reports';
 
 const CONTROL =
   'rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--fg)]';
@@ -25,14 +28,8 @@ const GHOST_BTN =
 const PRIMARY_BTN =
   'rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90';
 
-const STRIP_METRICS: MetricKey[] = ['impressions', 'clicks', 'spend', 'ctr', 'roas'];
-const STRIP_LABELS: Record<string, string> = {
-  impressions: 'Impresiones',
-  clicks: 'Clics',
-  spend: 'Inversión',
-  ctr: 'CTR',
-  roas: 'ROAS',
-};
+const KPI_METRICS: MetricKey[] = ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'roas'];
+const CHART_METRICS: MetricKey[] = ['impressions', 'clicks', 'spend', 'ctr', 'conversions', 'roas'];
 
 const REPORT_STATUS: Record<string, string> = {
   draft: 'Borrador',
@@ -50,7 +47,7 @@ export default async function DashboardPage({
   searchParams,
 }: {
   params: { orgSlug: string };
-  searchParams: { month?: string };
+  searchParams: { month?: string; range?: string };
 }) {
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/signin?redirect=/${params.orgSlug}/dashboard`);
@@ -63,36 +60,37 @@ export default async function DashboardPage({
     typeof searchParams.month === 'string' && /^\d{4}-\d{2}$/.test(searchParams.month)
       ? searchParams.month
       : currentMonth();
+  const range = searchParams.range === '12' ? 12 : 6;
   const prevMonth = previousMonth(month);
+  const months = monthsEndingAt(month, range);
   const canGenerate = access.role === 'owner' || access.role === 'admin';
 
-  const [clients, current, previous, monthReports] = await Promise.all([
-    listClients(orgId),
-    clientKpisForMonth(orgId, [], month),
-    clientKpisForMonth(orgId, [], prevMonth),
+  const [clientSeries, monthReports] = await Promise.all([
+    clientMonthlySeries(orgId, months),
     listReports(orgId, { month }),
   ]);
-
   const report = monthReports[0] ?? null;
-  const prevByClient = new Map(previous.map((c) => [c.clientId, c.kpis]));
 
-  const totals = current.reduce((acc, c) => addKpis(acc, c.kpis), emptyKpis());
-  const prevTotals = previous.reduce((acc, c) => addKpis(acc, c.kpis), emptyKpis());
-  const anyData = current.some((c) => hasData(c.kpis));
+  const orgByMonth: Record<string, Kpis> = {};
+  for (const m of months) {
+    orgByMonth[m] = clientSeries.reduce((acc, cs) => addKpis(acc, cs.byMonth[m]), emptyKpis());
+  }
+  const totals = orgByMonth[month] ?? emptyKpis();
+  const prevTotals = orgByMonth[prevMonth] ?? emptyKpis();
+  const multiClient = clientSeries.length > 1;
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[var(--fg)]">Panel</h1>
           <p className="text-sm text-[var(--fg-muted)]">{monthLabel(month)}</p>
         </div>
-        <div className="flex items-end gap-2">
-          <form method="get" className="flex items-end gap-2">
-            <label className="flex flex-col gap-1 text-xs text-[var(--fg-muted)]">
-              Mes
-              <input type="month" name="month" defaultValue={month} className={CONTROL} />
-            </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <RangePicker value={range} />
+          <form method="get" className="flex items-center gap-2">
+            <input type="hidden" name="range" value={range} />
+            <input type="month" name="month" defaultValue={month} className={CONTROL} />
             <button type="submit" className={GHOST_BTN}>
               Ver
             </button>
@@ -100,8 +98,8 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {clients.length === 0 ? (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-8 text-center">
+      {clientSeries.length === 0 ? (
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-10 text-center">
           <p className="text-sm text-[var(--fg-muted)]">
             Todavía no tienes clientes. Agrega el primero para empezar a cargar métricas y generar
             reportes.
@@ -138,50 +136,65 @@ export default async function DashboardPage({
             </div>
           </div>
 
-          {/* Org totals — only meaningful with more than one client */}
-          {clients.length > 1 && anyData ? (
-            <dl className="grid grid-cols-2 gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 sm:grid-cols-3 md:grid-cols-5">
-              {STRIP_METRICS.map((key) => (
-                <div key={key}>
-                  <dt className="text-[11px] uppercase tracking-wide text-[var(--fg-muted)]">
-                    {STRIP_LABELS[key]}
-                  </dt>
-                  <dd className="mt-0.5 flex items-baseline gap-2">
-                    <span className="text-lg font-bold text-[var(--fg)]">
-                      {formatMetric(key, totals[key])}
-                    </span>
-                    <MetricDelta metricKey={key} current={totals[key]} previous={prevTotals[key]} />
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
-
-          {/* One card per client */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {current.map((c) => {
-              const client = clients.find((x) => x.id === c.clientId);
-              if (!client) return null;
-              return (
-                <ClientOverviewCard
-                  key={c.clientId}
-                  orgSlug={params.orgSlug}
-                  month={month}
-                  client={{ id: client.id, name: client.name, platform: client.platform }}
-                  kpis={c.kpis}
-                  previous={prevByClient.get(c.clientId) ?? emptyKpis()}
-                  hasData={hasData(c.kpis)}
-                />
-              );
-            })}
+          {/* Headline KPIs for the month */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {KPI_METRICS.map((key) => (
+              <KpiCard
+                key={key}
+                metricKey={key}
+                value={totals[key]}
+                previous={prevTotals[key]}
+              />
+            ))}
           </div>
 
-          <p className="text-sm text-[var(--fg-muted)]">
-            ¿Cargar el mes de varios clientes de una?{' '}
-            <Link href={`/${params.orgSlug}/metrics`} className="text-[var(--fg)] underline">
-              Ir a Métricas
-            </Link>
-          </p>
+          {/* Trend charts over the selected window */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+              Tendencia · últimos {range} meses
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {CHART_METRICS.map((key) => (
+                <div
+                  key={key}
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+                >
+                  <p className="mb-2 text-sm font-medium text-[var(--fg)]">{METRIC_LABELS[key]}</p>
+                  <TrendChart data={metricSeries(orgByMonth, months, key)} metricKey={key} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Per client */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+              Por cliente
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {clientSeries.map((cs) => (
+                <ClientOverviewCard
+                  key={cs.clientId}
+                  orgSlug={params.orgSlug}
+                  month={month}
+                  client={{ id: cs.clientId, name: cs.clientName, platform: cs.clientPlatform }}
+                  kpis={cs.byMonth[month] ?? emptyKpis()}
+                  previous={cs.byMonth[prevMonth] ?? emptyKpis()}
+                  series={metricSeries(cs.byMonth, months, 'impressions')}
+                  hasData={hasData(cs.byMonth[month] ?? emptyKpis())}
+                />
+              ))}
+            </div>
+          </div>
+
+          {multiClient ? (
+            <p className="text-sm text-[var(--fg-muted)]">
+              ¿Cargar el mes de varios clientes de una?{' '}
+              <Link href={`/${params.orgSlug}/metrics`} className="text-[var(--fg)] underline">
+                Ir a Métricas
+              </Link>
+            </p>
+          ) : null}
         </>
       )}
     </section>
