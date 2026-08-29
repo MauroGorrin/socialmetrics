@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { ReportTemplate } from '@/components/pdf/report-template';
+import type { ReportProfile } from '@/lib/metrics';
 import { getReportData } from '@/server/queries/reports';
 import { getReportByShareToken } from '@/server/queries/shares';
 
@@ -15,7 +16,8 @@ export default async function PublicReportPage({ params }: { params: { token: st
   const data = await getReportData({
     orgId: shared.org.id,
     orgName: shared.org.name,
-    clientIds: shared.report.clientIds ?? [],
+    clientId: shared.report.clientId ?? null,
+    profile: (shared.report.profile as ReportProfile) ?? 'ads',
     periodMonth: shared.report.periodMonth,
     generatedAt: shared.report.generatedAt
       ? shared.report.generatedAt.toISOString().slice(0, 10)

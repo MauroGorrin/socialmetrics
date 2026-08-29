@@ -1,9 +1,11 @@
 import 'server-only';
 
-import { and, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import { createAdminSupabase } from '@/lib/auth';
 import {
   computeKpis,
+  computeOrganicKpis,
+  emptyKpis,
   isBaseMetric,
   type Kpis,
   type MetricKey,
@@ -11,9 +13,10 @@ import {
   monthLabel,
   monthsEndingAt,
   previousMonth,
+  type ReportProfile,
   shortMonthLabel,
 } from '@/lib/metrics';
-import type { ReportData } from '@/lib/report';
+import type { OrganicReportData, ReportData, ReportPostRow } from '@/lib/report';
 import { db } from '@/server/db';
 import type { Report } from '@/server/db/schema';
 import {
@@ -22,6 +25,7 @@ import {
   memberships,
   metrics,
   organizations,
+  reportPosts,
   reports,
   users,
 } from '@/server/db/schema';
@@ -332,16 +336,118 @@ export async function orgKpisByMonth(
 
 const TREND_MONTHS = 6;
 
+/** Organic KPIs per month for one client (`YYYY-MM` → Kpis), for the trend. */
+export async function organicKpisByMonth(
+  orgId: string,
+  clientId: string,
+  months: string[],
+): Promise<Record<string, Kpis>> {
+  const out: Record<string, Kpis> = {};
+  for (const month of months) out[month] = emptyKpis();
+  if (months.length === 0) return out;
+
+  const from = monthBounds(months[0]).from;
+  const to = monthBounds(months[months.length - 1]).to;
+  const rows = await db
+    .select({
+      month: sql<string>`to_char(${metrics.period}, 'YYYY-MM')`,
+      name: metrics.metricName,
+      sum: sql<string>`sum(${metrics.metricValue})`,
+    })
+    .from(metrics)
+    .where(
+      and(
+        eq(metrics.orgId, orgId),
+        eq(metrics.clientId, clientId),
+        gte(metrics.period, from),
+        lt(metrics.period, to),
+      ),
+    )
+    .groupBy(sql`to_char(${metrics.period}, 'YYYY-MM')`, metrics.metricName);
+
+  const raw: Record<string, Partial<Record<MetricKey, number>>> = {};
+  for (const row of rows) {
+    const bucket = raw[row.month] ?? {};
+    bucket[row.name as MetricKey] = Number(row.sum ?? 0);
+    raw[row.month] = bucket;
+  }
+  for (const month of months) {
+    out[month] = computeOrganicKpis(raw[month] ?? {});
+  }
+  return out;
+}
+
+/** The month's top posts for a client, most interactions first (up to `limit`). */
+export async function topPostsForMonth(
+  orgId: string,
+  clientId: string,
+  periodMonth: string,
+  limit = 3,
+): Promise<ReportPostRow[]> {
+  const { from, to } = monthBounds(periodMonth);
+  const rows = await db
+    .select()
+    .from(reportPosts)
+    .where(
+      and(
+        eq(reportPosts.orgId, orgId),
+        eq(reportPosts.clientId, clientId),
+        gte(reportPosts.period, from),
+        lt(reportPosts.period, to),
+      ),
+    )
+    .orderBy(desc(sql`coalesce(${reportPosts.interactions}, 0)`), asc(reportPosts.createdAt))
+    .limit(limit);
+
+  return rows.map((row) => {
+    const reach = row.reach == null ? 0 : Number(row.reach);
+    const interactions = row.interactions == null ? 0 : Number(row.interactions);
+    return {
+      url: row.url,
+      format: row.format,
+      reach,
+      interactions,
+      engagementRate: reach > 0 ? (interactions / reach) * 100 : 0,
+    };
+  });
+}
+
+/** The organic view-model for one client and month. */
+async function getOrganicReportData(
+  orgId: string,
+  clientId: string,
+  periodMonth: string,
+  prevMonth: string,
+  trendMonths: string[],
+): Promise<OrganicReportData> {
+  const [byMonth, posts] = await Promise.all([
+    organicKpisByMonth(orgId, clientId, [...new Set([...trendMonths, prevMonth, periodMonth])]),
+    topPostsForMonth(orgId, clientId, periodMonth),
+  ]);
+
+  return {
+    totals: byMonth[periodMonth] ?? emptyKpis(),
+    previousTotals: byMonth[prevMonth] ?? emptyKpis(),
+    trend: trendMonths.map((month) => ({
+      month,
+      label: shortMonthLabel(month),
+      kpis: byMonth[month] ?? emptyKpis(),
+    })),
+    topPosts: posts,
+  };
+}
+
 /**
- * Everything the report template needs for one `(org, month)`: this month's
- * KPIs per client, the previous month for deltas, and a 6-month trend of the
- * org totals. Callers pass the branding (a data URI for the PDF, a URL for the
- * web views) and the footer line.
+ * Everything the report template needs for one report. A report covers a single
+ * client (`clientId`) with a `profile` that decides which sections render; the
+ * legacy org-wide report passes `clientId: null` and always renders as ads.
+ * Callers pass the branding (a data URI for the PDF, a URL for the web views).
  */
 export async function getReportData(input: {
   orgId: string;
   orgName: string;
-  clientIds: string[];
+  clientId: string | null;
+  profile: ReportProfile;
   periodMonth: string;
   generatedAt: string;
   logoUrl?: string | null;
@@ -349,11 +455,35 @@ export async function getReportData(input: {
 }): Promise<ReportData> {
   const prevMonth = previousMonth(input.periodMonth);
   const trendMonths = monthsEndingAt(input.periodMonth, TREND_MONTHS);
+  const clientIds = input.clientId ? [input.clientId] : [];
+  const wantsAds = input.profile === 'ads' || input.profile === 'mixed' || !input.clientId;
+  const wantsOrganic =
+    Boolean(input.clientId) && (input.profile === 'organic' || input.profile === 'mixed');
 
-  const [current, previous, monthly] = await Promise.all([
-    clientKpisForMonth(input.orgId, input.clientIds, input.periodMonth),
-    clientKpisForMonth(input.orgId, input.clientIds, prevMonth),
-    orgKpisByMonth(input.orgId, input.clientIds, trendMonths),
+  const [clientRow, current, previous, monthly, organic] = await Promise.all([
+    input.clientId
+      ? db
+          .select({ name: clients.name })
+          .from(clients)
+          .where(and(eq(clients.orgId, input.orgId), eq(clients.id, input.clientId)))
+          .limit(1)
+      : Promise.resolve([] as Array<{ name: string }>),
+    wantsAds
+      ? clientKpisForMonth(input.orgId, clientIds, input.periodMonth)
+      : Promise.resolve([]),
+    wantsAds ? clientKpisForMonth(input.orgId, clientIds, prevMonth) : Promise.resolve([]),
+    wantsAds
+      ? orgKpisByMonth(input.orgId, clientIds, trendMonths)
+      : Promise.resolve({} as Record<string, Kpis>),
+    wantsOrganic && input.clientId
+      ? getOrganicReportData(
+          input.orgId,
+          input.clientId,
+          input.periodMonth,
+          prevMonth,
+          trendMonths,
+        )
+      : Promise.resolve(undefined),
   ]);
 
   const prevByClient = new Map(previous.map((c) => [c.clientId, c.kpis]));
@@ -362,9 +492,14 @@ export async function getReportData(input: {
     kpis: c.kpis,
     previous: prevByClient.get(c.clientId) ?? computeKpis({}),
   }));
+  const clientName = input.clientId
+    ? (clientRow[0]?.name ?? current[0]?.clientName ?? null)
+    : null;
 
   return {
     orgName: input.orgName,
+    clientName,
+    profile: input.profile,
     periodMonth: input.periodMonth,
     periodLabel: monthLabel(input.periodMonth),
     previousLabel: monthLabel(prevMonth),
@@ -379,5 +514,6 @@ export async function getReportData(input: {
       label: shortMonthLabel(month),
       kpis: monthly[month] ?? computeKpis({}),
     })),
+    organic,
   };
 }

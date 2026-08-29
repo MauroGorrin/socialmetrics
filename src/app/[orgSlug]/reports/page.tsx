@@ -3,6 +3,9 @@ import { generateReportAction } from '@/app/[orgSlug]/reports/actions';
 import { MonthFilter } from '@/components/app/month-filter';
 import { ReportListTable } from '@/components/app/report-list-table';
 import { getCurrentUser } from '@/lib/auth';
+import { PROFILE_LABELS } from '@/lib/client-profile';
+import type { ReportProfile } from '@/lib/metrics';
+import { listClients } from '@/server/queries/clients';
 import { getAccessibleOrg } from '@/server/queries/orgs';
 import { listReports, reportMonths } from '@/server/queries/reports';
 
@@ -30,10 +33,12 @@ export default async function ReportsPage({
   if (!access) notFound();
 
   const activeMonth = typeof searchParams.month === 'string' ? searchParams.month : '';
-  const [reports, months] = await Promise.all([
+  const [reports, months, clients] = await Promise.all([
     listReports(access.org.id, { month: activeMonth || undefined }),
     reportMonths(access.org.id),
+    listClients(access.org.id),
   ]);
+  const clientName = new Map(clients.map((c) => [c.id, c.name]));
 
   const canGenerate = access.role === 'owner' || access.role === 'admin';
   const error = searchParams.error ? (ERRORS[searchParams.error] ?? ERRORS.failed) : null;
@@ -49,14 +54,28 @@ export default async function ReportsPage({
         </p>
       ) : null}
 
-      {canGenerate ? (
+      {canGenerate && clients.length > 0 ? (
         <form
           action={generateReportAction}
           className="flex flex-wrap items-end gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
         >
           <input type="hidden" name="orgSlug" value={params.orgSlug} />
           <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
-            Generar reporte del mes
+            Cliente
+            <select
+              name="clientId"
+              required
+              className="rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--fg)]"
+            >
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
+            Mes
             <input
               name="periodMonth"
               type="month"
@@ -83,6 +102,11 @@ export default async function ReportsPage({
         rows={reports.map((report) => ({
           id: report.id,
           periodMonth: report.periodMonth,
+          clientId: report.clientId,
+          clientName: report.clientId
+            ? (clientName.get(report.clientId) ?? 'Cliente eliminado')
+            : 'Todos',
+          profileLabel: PROFILE_LABELS[(report.profile as ReportProfile) ?? 'ads'],
           createdAt: report.createdAt.toISOString(),
           status: report.status,
           hasPdf: Boolean(report.pdfUrl),

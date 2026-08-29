@@ -10,6 +10,7 @@ import { createShareLink, generateReport, sendReport } from '@/server/mutations/
 const schema = z.object({
   orgSlug: z.string().min(1),
   periodMonth: z.string().regex(/^\d{4}-\d{2}$/),
+  clientId: z.union([z.uuid(), z.literal('')]).optional(),
 });
 
 function str(formData: FormData, key: string): string {
@@ -25,6 +26,7 @@ export async function generateReportAction(formData: FormData): Promise<void> {
   const parsed = schema.safeParse({
     orgSlug: str(formData, 'orgSlug'),
     periodMonth: str(formData, 'periodMonth'),
+    clientId: str(formData, 'clientId'),
   });
   if (!parsed.success) {
     redirect(`/${str(formData, 'orgSlug')}/reports?error=period`);
@@ -38,7 +40,7 @@ export async function generateReportAction(formData: FormData): Promise<void> {
       orgName: org.name,
       actorId: user.id,
       periodMonth: parsed.data.periodMonth,
-      clientIds: [],
+      clientId: parsed.data.clientId || null,
     });
     target = result.ok
       ? `/${parsed.data.orgSlug}/reports/${result.data.reportId}`

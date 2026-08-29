@@ -83,7 +83,9 @@ export default async function DashboardPage({
     clientMonthlySeries(orgId, fetchMonths),
     listReports(orgId, { month }),
   ]);
-  const report = monthReports[0] ?? null;
+  const report = clientFilter
+    ? (monthReports.find((r) => r.clientId === clientFilter) ?? null)
+    : null;
 
   const clients = clientFilter
     ? allClients.filter((c) => c.clientId === clientFilter)
@@ -130,29 +132,41 @@ export default async function DashboardPage({
         </div>
       ) : (
         <>
-          {/* Report of the month */}
+          {/* Report of the month — per selected client */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-4">
             <div className="text-sm">
-              <span className="font-medium text-[var(--fg)]">Reporte de {monthLabel(month)}</span>
+              <span className="font-medium text-[var(--fg)]">
+                Reporte de {monthLabel(month)}
+                {clientFilter ? ` · ${activeClientName}` : ''}
+              </span>
               <span className="ml-2 text-[var(--fg-muted)]">
-                {report ? (REPORT_STATUS[report.status] ?? report.status) : 'Sin generar'}
+                {clientFilter
+                  ? report
+                    ? (REPORT_STATUS[report.status] ?? report.status)
+                    : 'Sin generar'
+                  : `${monthReports.length} este mes`}
               </span>
             </div>
             <div className="flex gap-2">
-              {report ? (
+              {clientFilter && report ? (
                 <Link href={`/${params.orgSlug}/reports/${report.id}`} className={GHOST_BTN}>
                   Ver reporte
                 </Link>
               ) : null}
-              {canGenerate ? (
+              {canGenerate && clientFilter ? (
                 <form action={generateReportAction}>
                   <input type="hidden" name="orgSlug" value={params.orgSlug} />
                   <input type="hidden" name="periodMonth" value={month} />
+                  <input type="hidden" name="clientId" value={clientFilter} />
                   <button type="submit" className={report ? GHOST_BTN : PRIMARY_BTN}>
                     {report ? 'Regenerar' : 'Generar reporte'}
                   </button>
                 </form>
-              ) : null}
+              ) : (
+                <Link href={`/${params.orgSlug}/reports`} className={GHOST_BTN}>
+                  Ver reportes
+                </Link>
+              )}
             </div>
           </div>
 

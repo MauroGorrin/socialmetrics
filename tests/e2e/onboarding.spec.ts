@@ -142,7 +142,7 @@ test.describe('onboarding wizard', () => {
     await page.waitForURL(new RegExp(`/${slug}/reports/[0-9a-f-]+$`), { timeout: 90_000 });
     const reportId = new URL(page.url()).pathname.split('/').pop();
     expect(reportId).toBeTruthy();
-    await expect(page.locator('[data-section="impressions"]')).toBeVisible();
+    await expect(page.locator('[data-section="kpis"]')).toBeVisible();
 
     // Criterion 1: org renamed, client + 30 metrics + report all created.
     const { data: finalOrg } = await admin

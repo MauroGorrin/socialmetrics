@@ -153,7 +153,7 @@ export async function generateOnboardingReportAction(): Promise<void> {
     orgName: org.name,
     actorId: user.id,
     periodMonth: state.periodMonth,
-    clientIds: [state.clientId],
+    clientId: state.clientId,
   });
   if (!result.ok) redirect('/onboarding/step-4?error=report');
 

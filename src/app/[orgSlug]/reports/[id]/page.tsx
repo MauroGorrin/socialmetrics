@@ -6,6 +6,7 @@ import { SendReportDialog } from '@/components/app/send-report-dialog';
 import { ReportTemplate } from '@/components/pdf/report-template';
 import { getCurrentUser } from '@/lib/auth';
 import { env } from '@/lib/env';
+import type { ReportProfile } from '@/lib/metrics';
 import { getAccessibleOrg } from '@/server/queries/orgs';
 import { getReport, getReportData, signedReportPdfUrl } from '@/server/queries/reports';
 
@@ -30,7 +31,8 @@ export default async function ReportViewPage({
   const data = await getReportData({
     orgId: access.org.id,
     orgName: access.org.name,
-    clientIds: report.clientIds ?? [],
+    clientId: report.clientId ?? null,
+    profile: (report.profile as ReportProfile) ?? 'ads',
     periodMonth: report.periodMonth,
     generatedAt: report.generatedAt
       ? report.generatedAt.toISOString().slice(0, 10)

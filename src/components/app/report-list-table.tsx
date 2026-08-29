@@ -3,6 +3,9 @@ import Link from 'next/link';
 export type ReportListRow = {
   id: string;
   periodMonth: string;
+  clientId: string | null;
+  clientName: string;
+  profileLabel: string;
   createdAt: string;
   status: string;
   hasPdf: boolean;
@@ -39,6 +42,8 @@ export function ReportListTable({ orgSlug, rows, canGenerate, generateAction }: 
         <thead className="border-b border-[var(--border)] text-[var(--fg-muted)]">
           <tr>
             <th className="px-4 py-2 font-medium">Mes</th>
+            <th className="px-4 py-2 font-medium">Cliente</th>
+            <th className="px-4 py-2 font-medium">Tipo</th>
             <th className="px-4 py-2 font-medium">Creado</th>
             <th className="px-4 py-2 font-medium">Estado</th>
             <th className="px-4 py-2 font-medium" />
@@ -48,6 +53,8 @@ export function ReportListTable({ orgSlug, rows, canGenerate, generateAction }: 
           {rows.map((row) => (
             <tr key={row.id}>
               <td className="px-4 py-2 font-medium text-[var(--fg)]">{row.periodMonth}</td>
+              <td className="px-4 py-2 text-[var(--fg)]">{row.clientName}</td>
+              <td className="px-4 py-2 text-[var(--fg-muted)]">{row.profileLabel}</td>
               <td className="px-4 py-2 text-[var(--fg-muted)]">{row.createdAt.slice(0, 10)}</td>
               <td className="px-4 py-2 text-[var(--fg-muted)]">
                 {STATUS_LABEL[row.status] ?? row.status}
@@ -71,6 +78,9 @@ export function ReportListTable({ orgSlug, rows, canGenerate, generateAction }: 
                     <form action={generateAction}>
                       <input type="hidden" name="orgSlug" value={orgSlug} />
                       <input type="hidden" name="periodMonth" value={row.periodMonth} />
+                      {row.clientId ? (
+                        <input type="hidden" name="clientId" value={row.clientId} />
+                      ) : null}
                       <button
                         type="submit"
                         className="rounded border border-[var(--border)] px-2 py-1 text-xs text-[var(--fg)] hover:opacity-70"

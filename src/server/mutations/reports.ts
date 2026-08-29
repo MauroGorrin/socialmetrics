@@ -1,14 +1,15 @@
 import 'server-only';
 
 import { randomUUID } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { renderReportDocument } from '@/components/pdf/report-template';
 import { createAdminSupabase } from '@/lib/auth';
 import { sendEmail } from '@/lib/email';
 import { env } from '@/lib/env';
+import type { ReportProfile } from '@/lib/metrics';
 import { htmlToPdf } from '@/lib/pdf-generator';
 import { db } from '@/server/db';
-import { auditLogs, emailEvents, organizations, reports } from '@/server/db/schema';
+import { auditLogs, clients, emailEvents, organizations, reports } from '@/server/db/schema';
 import { getReport, getReportData } from '@/server/queries/reports';
 
 const SITE_URL = env.SESSION_URL ?? 'http://localhost:3000';
@@ -44,21 +45,52 @@ export async function generateReport(input: {
   orgName: string;
   actorId: string;
   periodMonth: string;
-  clientIds: string[];
+  /** The single client this report is for. Omit for a legacy org-wide report. */
+  clientId?: string | null;
+  /** Legacy multi-client selection — only used when `clientId` is absent. */
+  clientIds?: string[];
 }): Promise<Result<{ reportId: string; pdfPath: string }>> {
-  const clientIds = input.clientIds.length > 0 ? input.clientIds : null;
+  const clientId = input.clientId ?? null;
+  const legacyClientIds = !clientId && input.clientIds && input.clientIds.length > 0
+    ? input.clientIds
+    : null;
+
+  // A per-client report's profile comes from the client; legacy reports are ads.
+  let profile: ReportProfile = 'ads';
+  if (clientId) {
+    const [client] = await db
+      .select({ reportProfile: clients.reportProfile })
+      .from(clients)
+      .where(and(eq(clients.orgId, input.orgId), eq(clients.id, clientId)))
+      .limit(1);
+    if (!client) return { ok: false, error: 'El cliente no existe.' };
+    profile = (client.reportProfile as ReportProfile) ?? 'ads';
+  }
 
   const [existing] = await db
     .select({ id: reports.id })
     .from(reports)
-    .where(and(eq(reports.orgId, input.orgId), eq(reports.periodMonth, input.periodMonth)))
+    .where(
+      and(
+        eq(reports.orgId, input.orgId),
+        eq(reports.periodMonth, input.periodMonth),
+        clientId ? eq(reports.clientId, clientId) : isNull(reports.clientId),
+      ),
+    )
     .limit(1);
 
   let reportId = existing?.id;
   if (!reportId) {
     const [created] = await db
       .insert(reports)
-      .values({ orgId: input.orgId, periodMonth: input.periodMonth, clientIds, status: 'draft' })
+      .values({
+        orgId: input.orgId,
+        periodMonth: input.periodMonth,
+        clientId,
+        profile,
+        clientIds: legacyClientIds,
+        status: 'draft',
+      })
       .returning({ id: reports.id });
     reportId = created.id;
   }
@@ -73,7 +105,8 @@ export async function generateReport(input: {
     const data = await getReportData({
       orgId: input.orgId,
       orgName: input.orgName,
-      clientIds: clientIds ?? [],
+      clientId,
+      profile,
       periodMonth: input.periodMonth,
       generatedAt: new Date().toISOString().slice(0, 10),
       logoUrl: await logoDataUri(org?.logoUrl ?? null),
@@ -99,7 +132,9 @@ export async function generateReport(input: {
       .update(reports)
       .set({
         pdfUrl: pdfPath,
-        clientIds,
+        clientId,
+        profile,
+        clientIds: legacyClientIds,
         status: 'generated',
         generatedAt: new Date(),
         updatedAt: new Date(),
@@ -111,7 +146,7 @@ export async function generateReport(input: {
       actorId: input.actorId,
       action: 'generate_report',
       targetId: reportId,
-      metadata: { periodMonth: input.periodMonth },
+      metadata: { periodMonth: input.periodMonth, clientId, profile },
     });
 
     return { ok: true, data: { reportId, pdfPath } };
