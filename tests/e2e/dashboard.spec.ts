@@ -101,12 +101,15 @@ test.describe('dashboard overview', () => {
     await page.click('button[type="submit"]');
     await page.waitForURL(new RegExp(`/${slug}/dashboard$`), { timeout: 90_000 });
 
-    // A card per client; no metrics yet → the no-data state + report "Sin generar".
+    // A card per client; no metrics yet → the no-data state.
     await page.goto(`/${slug}/dashboard?month=${MONTH}&period=1`);
     const cards = page.locator('article');
     await expect(cards).toHaveCount(2);
     await expect(page.getByRole('link', { name: 'Cliente Uno' })).toBeVisible();
     await expect(page.getByText('Sin datos en este período.').first()).toBeVisible();
+
+    // With a client selected, the report row offers "Generar reporte".
+    await page.goto(`/${slug}/dashboard?month=${MONTH}&period=1&client=${clientUnoId}`);
     await expect(page.getByText('Sin generar')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Generar reporte' })).toBeVisible();
 
