@@ -1,10 +1,12 @@
 import { notFound, redirect } from 'next/navigation';
 import { saveMonthlyMetricsAction } from '@/app/[orgSlug]/metrics/actions';
 import { MonthlyMetricForm } from '@/components/app/monthly-metric-form';
+import type { PostRow } from '@/components/app/top-posts-fields';
 import { getCurrentUser } from '@/lib/auth';
-import { currentMonth, monthLabel } from '@/lib/metrics';
+import { PROFILE_LABELS } from '@/lib/client-profile';
+import { currentMonth, monthLabel, type ReportProfile } from '@/lib/metrics';
 import { listClients } from '@/server/queries/clients';
-import { monthlyMetricValues } from '@/server/queries/metrics';
+import { monthlyMetricValues, monthlyPosts } from '@/server/queries/metrics';
 import { getAccessibleOrg } from '@/server/queries/orgs';
 
 const NOTICES: Record<string, string> = {
@@ -38,9 +40,19 @@ export default async function MetricsEntryPage({
   const activeClient =
     clients.find((c) => c.id === searchParams.client) ?? clients[0] ?? null;
 
-  const initial = activeClient
-    ? await monthlyMetricValues(access.org.id, activeClient.id, month)
-    : {};
+  const [initial, posts] = activeClient
+    ? await Promise.all([
+        monthlyMetricValues(access.org.id, activeClient.id, month),
+        monthlyPosts(access.org.id, activeClient.id, month),
+      ])
+    : [{}, []];
+  const activeProfile = (activeClient?.reportProfile as ReportProfile) ?? 'ads';
+  const initialPosts: PostRow[] = posts.map((post) => ({
+    url: post.url,
+    format: post.format,
+    reach: post.reach == null ? null : Number(post.reach),
+    interactions: post.interactions == null ? null : Number(post.interactions),
+  }));
 
   const noticeKey = searchParams.saved
     ? 'saved'
@@ -104,10 +116,12 @@ export default async function MetricsEntryPage({
             <MonthlyMetricForm
               orgSlug={params.orgSlug}
               clientId={activeClient.id}
-              clientName={activeClient.name}
+              clientName={`${activeClient.name} · ${PROFILE_LABELS[activeProfile]}`}
               periodMonth={month}
               monthLabel={monthLabel(month)}
+              profile={activeProfile}
               initial={initial}
+              initialPosts={initialPosts}
               action={saveMonthlyMetricsAction}
             />
           ) : null}

@@ -4,7 +4,7 @@ import { and, eq, gte, lt } from 'drizzle-orm';
 import { firstOfMonth, type MetricKey, monthBounds } from '@/lib/metrics';
 import { db } from '@/server/db';
 import type { Metric } from '@/server/db/schema';
-import { metrics } from '@/server/db/schema';
+import { metrics, reportPosts } from '@/server/db/schema';
 
 /**
  * Metric writes. Org-scoped like every other mutation — `orgId` is in the
@@ -21,6 +21,15 @@ export const METRIC_NAMES = [
   'roas',
   'conversions',
   'conversion_value',
+  'followers_start',
+  'followers_end',
+  'reach',
+  'profile_visits',
+  'link_clicks',
+  'interactions',
+  'posts_published',
+  'stories_published',
+  'video_views',
 ] as const;
 
 export type MetricName = (typeof METRIC_NAMES)[number];
@@ -92,6 +101,63 @@ export async function upsertMonthlyMetrics(input: {
       );
     if (rows.length > 0) {
       await tx.insert(metrics).values(rows);
+    }
+  });
+}
+
+export type MonthlyPostInput = {
+  url: string;
+  format?: string | null;
+  reach?: number | null;
+  interactions?: number | null;
+};
+
+/**
+ * Replace a client's best-posts list for the month. Same "clear the month,
+ * rewrite it" contract as {@link upsertMonthlyMetrics}: whatever the organic
+ * grid submits is exactly what the month holds afterwards. Rows without a URL
+ * are dropped by the caller.
+ */
+export async function upsertMonthlyPosts(input: {
+  orgId: string;
+  clientId: string;
+  actorId: string;
+  periodMonth: string;
+  posts: MonthlyPostInput[];
+}): Promise<void> {
+  const { from, to } = monthBounds(input.periodMonth);
+  const period = firstOfMonth(input.periodMonth);
+
+  const rows = input.posts
+    .filter((post) => post.url.trim().length > 0)
+    .slice(0, 5)
+    .map((post) => ({
+      orgId: input.orgId,
+      clientId: input.clientId,
+      createdBy: input.actorId,
+      period,
+      url: post.url.trim(),
+      format: post.format?.trim() || null,
+      reach: post.reach != null && Number.isFinite(post.reach) ? post.reach.toFixed(2) : null,
+      interactions:
+        post.interactions != null && Number.isFinite(post.interactions)
+          ? post.interactions.toFixed(2)
+          : null,
+    }));
+
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(reportPosts)
+      .where(
+        and(
+          eq(reportPosts.orgId, input.orgId),
+          eq(reportPosts.clientId, input.clientId),
+          gte(reportPosts.period, from),
+          lt(reportPosts.period, to),
+        ),
+      );
+    if (rows.length > 0) {
+      await tx.insert(reportPosts).values(rows);
     }
   });
 }
