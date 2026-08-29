@@ -124,7 +124,7 @@ test.describe('members & invitations', () => {
     const inviteePage = await inviteeContext.newPage();
     await inviteePage.goto(`/invite/${token}`);
     await expect(inviteePage.getByRole('heading', { name: /Unirte a/i })).toBeVisible();
-    await inviteePage.getByLabel('Elegí una contraseña').fill(PASSWORD);
+    await inviteePage.getByLabel('Elige una contraseña').fill(PASSWORD);
     await inviteePage.getByRole('button', { name: 'Aceptar y entrar' }).click();
     await inviteePage.waitForURL(new RegExp(`/${slug}/dashboard$`), { timeout: 90_000 });
 
