@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
+import { PLATFORMS, REPORT_PROFILES } from '@/lib/client-profile';
 import { ForbiddenError, requireRole, TenantError } from '@/server/auth/guards';
 import { db } from '@/server/db';
 import { auditLogs } from '@/server/db/schema';
@@ -19,12 +20,11 @@ import { createClient, softDeleteClient, updateClient } from '@/server/mutations
  * `redirect()` is always called outside try/catch — it signals by throwing.
  */
 
-const PLATFORMS = ['meta', 'google_ads', 'tiktok', 'instagram'] as const;
-
 const createSchema = z.object({
   orgSlug: z.string().min(1),
   name: z.string().trim().min(1).max(120),
   platform: z.enum(PLATFORMS),
+  reportProfile: z.enum(REPORT_PROFILES),
 });
 
 const updateSchema = z.object({
@@ -33,6 +33,7 @@ const updateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   platform: z.enum(PLATFORMS),
   platformAccountId: z.string().trim().max(120).optional(),
+  reportProfile: z.enum(REPORT_PROFILES),
 });
 
 const deleteSchema = z.object({
@@ -75,6 +76,7 @@ export async function createClientAction(
     orgSlug: str(formData, 'orgSlug'),
     name: str(formData, 'name'),
     platform: str(formData, 'platform'),
+    reportProfile: str(formData, 'reportProfile') || 'ads',
   });
   if (!parsed.success) {
     return { error: 'Ingresa un nombre y elige una plataforma.' };
@@ -87,6 +89,7 @@ export async function createClientAction(
       createdBy: user.id,
       name: parsed.data.name,
       platform: parsed.data.platform,
+      reportProfile: parsed.data.reportProfile,
     });
     await recordAudit(org.id, user.id, 'client.create', client.id, { name: client.name });
   } catch (error) {
@@ -107,6 +110,7 @@ export async function updateClientAction(formData: FormData): Promise<void> {
     name: str(formData, 'name'),
     platform: str(formData, 'platform'),
     platformAccountId: str(formData, 'platformAccountId').trim() || undefined,
+    reportProfile: str(formData, 'reportProfile') || 'ads',
   });
   if (!parsed.success) {
     redirect(`/${str(formData, 'orgSlug')}/clients/${str(formData, 'clientId')}?error=save`);
@@ -119,6 +123,7 @@ export async function updateClientAction(formData: FormData): Promise<void> {
       name: parsed.data.name,
       platform: parsed.data.platform,
       platformAccountId: parsed.data.platformAccountId ?? null,
+      reportProfile: parsed.data.reportProfile,
     });
     if (updated) {
       await recordAudit(org.id, user.id, 'client.update', parsed.data.clientId, {

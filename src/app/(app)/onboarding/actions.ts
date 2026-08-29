@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
+import { PLATFORMS, REPORT_PROFILES } from '@/lib/client-profile';
 import {
   advanceOnboarding,
   clearOnboarding,
@@ -16,8 +17,6 @@ import { createClient, updateClient } from '@/server/mutations/clients';
 import { generateReport } from '@/server/mutations/reports';
 import { renameOrg } from '@/server/mutations/orgs';
 import { getOrgBySlug, listOrgsByUser } from '@/server/queries/orgs';
-
-const PLATFORMS = ['meta', 'google_ads', 'tiktok', 'instagram'] as const;
 
 function str(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -66,8 +65,16 @@ export async function submitClientAction(formData: FormData): Promise<void> {
   if (!state.orgSlug) redirect('/onboarding/step-1');
 
   const parsed = z
-    .object({ name: z.string().trim().min(1).max(120), platform: z.enum(PLATFORMS) })
-    .safeParse({ name: str(formData, 'clientName'), platform: str(formData, 'clientPlatform') });
+    .object({
+      name: z.string().trim().min(1).max(120),
+      platform: z.enum(PLATFORMS),
+      profile: z.enum(REPORT_PROFILES),
+    })
+    .safeParse({
+      name: str(formData, 'clientName'),
+      platform: str(formData, 'clientPlatform'),
+      profile: str(formData, 'clientProfile') || 'ads',
+    });
   if (!parsed.success) redirect('/onboarding/step-2?error=client');
 
   const org = await getOrgBySlug(state.orgSlug);
@@ -75,13 +82,18 @@ export async function submitClientAction(formData: FormData): Promise<void> {
 
   let clientId = state.clientId;
   if (clientId) {
-    await updateClient(org.id, clientId, { name: parsed.data.name, platform: parsed.data.platform });
+    await updateClient(org.id, clientId, {
+      name: parsed.data.name,
+      platform: parsed.data.platform,
+      reportProfile: parsed.data.profile,
+    });
   } else {
     const client = await createClient({
       orgId: org.id,
       createdBy: user.id,
       name: parsed.data.name,
       platform: parsed.data.platform,
+      reportProfile: parsed.data.profile,
     });
     clientId = client.id;
   }
@@ -91,6 +103,7 @@ export async function submitClientAction(formData: FormData): Promise<void> {
     clientId,
     clientName: parsed.data.name,
     clientPlatform: parsed.data.platform,
+    clientProfile: parsed.data.profile,
   });
   redirect('/onboarding/step-3');
 }
@@ -112,6 +125,7 @@ export async function seedMetricsAction(): Promise<void> {
         clientId: state.clientId,
         createdBy: user.id,
         periodMonth,
+        profile: state.clientProfile,
       }),
     );
   }

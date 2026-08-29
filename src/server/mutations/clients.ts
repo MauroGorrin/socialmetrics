@@ -1,6 +1,8 @@
 import 'server-only';
 
 import { and, eq, isNull } from 'drizzle-orm';
+import type { Platform } from '@/lib/client-profile';
+import type { ReportProfile } from '@/lib/metrics';
 import { db } from '@/server/db';
 import type { Client } from '@/server/db/schema';
 import { clients } from '@/server/db/schema';
@@ -11,19 +13,21 @@ import { clients } from '@/server/db/schema';
  * matches no row and the caller returns 404.
  */
 
-export type Platform = 'meta' | 'google_ads' | 'tiktok' | 'instagram';
+export type { Platform };
 
 export type NewClient = {
   orgId: string;
   createdBy: string;
   name: string;
   platform: Platform;
+  reportProfile?: ReportProfile;
 };
 
 export type ClientPatch = {
   name?: string;
   platform?: Platform;
   platformAccountId?: string | null;
+  reportProfile?: ReportProfile;
 };
 
 export async function createClient(input: NewClient): Promise<Client> {
@@ -34,6 +38,7 @@ export async function createClient(input: NewClient): Promise<Client> {
       createdBy: input.createdBy,
       name: input.name,
       platform: input.platform,
+      reportProfile: input.reportProfile ?? 'ads',
     })
     .returning();
   return row;
@@ -49,6 +54,7 @@ export async function updateClient(
   if (patch.name !== undefined) set.name = patch.name;
   if (patch.platform !== undefined) set.platform = patch.platform;
   if (patch.platformAccountId !== undefined) set.platformAccountId = patch.platformAccountId;
+  if (patch.reportProfile !== undefined) set.reportProfile = patch.reportProfile;
 
   const [row] = await db
     .update(clients)

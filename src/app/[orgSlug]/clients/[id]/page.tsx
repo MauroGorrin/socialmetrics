@@ -5,6 +5,7 @@ import { ExportCsvButton } from '@/components/app/export-csv-button';
 import { KpiCard } from '@/components/app/kpi-card';
 import { TrendChart } from '@/components/app/trend-chart';
 import { getCurrentUser } from '@/lib/auth';
+import { PLATFORM_LABELS, PLATFORM_OPTIONS, PROFILE_LABELS, REPORT_PROFILES } from '@/lib/client-profile';
 import {
   currentMonth,
   formatMetric,
@@ -21,14 +22,6 @@ import { orgKpisByMonth } from '@/server/queries/reports';
 
 const FIELD =
   'rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-base text-[var(--fg)] outline-none focus:border-[var(--fg-muted)]';
-
-const PLATFORM_OPTIONS = [
-  { value: 'meta', label: 'Meta' },
-  { value: 'google_ads', label: 'Google Ads' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'instagram', label: 'Instagram' },
-];
-const PLATFORM_LABELS = Object.fromEntries(PLATFORM_OPTIONS.map((o) => [o.value, o.label]));
 
 const KPI_METRICS: MetricKey[] = ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'roas'];
 const CHART_METRICS: MetricKey[] = ['impressions', 'clicks', 'spend', 'ctr', 'conversions', 'roas'];
@@ -85,7 +78,9 @@ export default async function ClientDetailPage({
           <div>
             <h1 className="text-2xl font-bold text-[var(--fg)]">{client.name}</h1>
             <p className="text-sm text-[var(--fg-muted)]">
-              {PLATFORM_LABELS[client.platform] ?? client.platform}
+              {PLATFORM_LABELS[client.platform] ?? client.platform} ·{' '}
+              {PROFILE_LABELS[client.reportProfile as keyof typeof PROFILE_LABELS] ??
+                client.reportProfile}
             </p>
           </div>
           <Link
@@ -202,6 +197,16 @@ export default async function ClientDetailPage({
           <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
             Nombre
             <input name="name" type="text" required defaultValue={client.name} className={FIELD} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
+            Tipo de gestión
+            <select name="reportProfile" defaultValue={client.reportProfile} className={FIELD}>
+              {REPORT_PROFILES.map((value) => (
+                <option key={value} value={value}>
+                  {PROFILE_LABELS[value]}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
             Plataforma

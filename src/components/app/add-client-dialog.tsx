@@ -1,7 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useFormState } from 'react-dom';
+import {
+  platformOptionsFor,
+  PROFILE_DESCRIPTIONS,
+  PROFILE_LABELS,
+  REPORT_PROFILES,
+} from '@/lib/client-profile';
+import type { ReportProfile } from '@/lib/metrics';
 
 export type AddClientFormState = { ok?: boolean; error?: string };
 
@@ -11,13 +18,6 @@ type Props = {
   action: (state: AddClientFormState, formData: FormData) => Promise<AddClientFormState>;
 };
 
-const PLATFORM_OPTIONS = [
-  { value: 'meta', label: 'Meta' },
-  { value: 'google_ads', label: 'Google Ads' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'instagram', label: 'Instagram' },
-] as const;
-
 const FIELD =
   'rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-base text-[var(--fg)] outline-none focus:border-[var(--fg-muted)]';
 
@@ -26,7 +26,10 @@ const INITIAL: AddClientFormState = {};
 /** "Add client" button + modal form. The only client component on the page. */
 export function AddClientDialog({ orgSlug, action }: Props) {
   const [open, setOpen] = useState(false);
+  const [profile, setProfile] = useState<ReportProfile>('ads');
   const [state, formAction] = useFormState(action, INITIAL);
+
+  const platformOptions = useMemo(() => platformOptionsFor(profile), [profile]);
 
   // `state` gets a fresh identity per submission, so this fires once per success.
   useEffect(() => {
@@ -69,10 +72,35 @@ export function AddClientDialog({ orgSlug, action }: Props) {
                 Nombre
                 <input name="name" type="text" required className={FIELD} />
               </label>
+
+              <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
+                Tipo de gestión
+                <select
+                  name="reportProfile"
+                  value={profile}
+                  onChange={(event) => setProfile(event.target.value as ReportProfile)}
+                  className={FIELD}
+                >
+                  {REPORT_PROFILES.map((value) => (
+                    <option key={value} value={value}>
+                      {PROFILE_LABELS[value]}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs text-[var(--fg-muted)]">
+                  {PROFILE_DESCRIPTIONS[profile]}
+                </span>
+              </label>
+
               <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
                 Plataforma
-                <select name="platform" defaultValue="meta" className={FIELD}>
-                  {PLATFORM_OPTIONS.map((option) => (
+                <select
+                  key={profile}
+                  name="platform"
+                  defaultValue={platformOptions[0]?.value}
+                  className={FIELD}
+                >
+                  {platformOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>

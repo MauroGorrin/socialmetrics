@@ -1,13 +1,7 @@
 import { submitClientAction } from '@/app/(app)/onboarding/actions';
 import { WIZARD_FIELD, WIZARD_PRIMARY, WizardShell } from '@/app/(app)/onboarding/wizard-shell';
+import { PLATFORM_OPTIONS, PROFILE_LABELS, REPORT_PROFILES } from '@/lib/client-profile';
 import { requireStep } from '@/lib/onboarding';
-
-const PLATFORMS = [
-  { value: 'meta', label: 'Meta' },
-  { value: 'google_ads', label: 'Google Ads' },
-  { value: 'tiktok', label: 'TikTok' },
-  { value: 'instagram', label: 'Instagram' },
-];
 
 export default function OnboardingStep2({
   searchParams,
@@ -31,13 +25,27 @@ export default function OnboardingStep2({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
+          Tipo de gestión
+          <select
+            name="clientProfile"
+            defaultValue={state.clientProfile ?? 'ads'}
+            className={WIZARD_FIELD}
+          >
+            {REPORT_PROFILES.map((value) => (
+              <option key={value} value={value}>
+                {PROFILE_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
           Plataforma
           <select
             name="clientPlatform"
             defaultValue={state.clientPlatform ?? 'meta'}
             className={WIZARD_FIELD}
           >
-            {PLATFORMS.map((platform) => (
+            {PLATFORM_OPTIONS.map((platform) => (
               <option key={platform.value} value={platform.value}>
                 {platform.label}
               </option>
