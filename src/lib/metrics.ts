@@ -87,7 +87,7 @@ export const METRIC_LABELS: Record<MetricKey, string> = {
   stories_published: 'Historias',
   video_views: 'Reproducciones de video',
   follower_growth: 'Crecimiento de seguidores',
-  follower_growth_rate: 'Crecimiento de seguidores',
+  follower_growth_rate: 'Crecimiento (%)',
   engagement_rate: 'Tasa de interacción',
 };
 
