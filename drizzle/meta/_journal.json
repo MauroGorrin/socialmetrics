@@ -50,6 +50,13 @@
       "when": 1787922166786,
       "tag": "0006_parched_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787962689113,
+      "tag": "0007_tranquil_clint_barton",
+      "breakpoints": true
     }
   ]
 }

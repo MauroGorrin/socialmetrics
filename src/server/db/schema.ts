@@ -96,6 +96,8 @@ export const clients = pgTable(
     name: text('name').notNull(),
     platform: text('platform').notNull(),
     platformAccountId: text('platform_account_id'),
+    /** Which report template this client's monthly report uses. */
+    reportProfile: text('report_profile').notNull().default('ads'),
     createdBy: uuid('created_by')
       .notNull()
       .references(() => users.id),
@@ -107,7 +109,11 @@ export const clients = pgTable(
     index('idx_client_org_id_created_at').on(table.orgId, table.createdAt),
     check(
       'client_platform_check',
-      sql`${table.platform} in ('meta', 'google_ads', 'tiktok', 'instagram')`,
+      sql`${table.platform} in ('meta', 'google_ads', 'tiktok', 'instagram', 'facebook', 'youtube', 'linkedin')`,
+    ),
+    check(
+      'client_report_profile_check',
+      sql`${table.reportProfile} in ('organic', 'ads', 'mixed')`,
     ),
   ],
 );
@@ -137,7 +143,7 @@ export const metrics = pgTable(
     index('idx_metric_org_client_period').on(table.orgId, table.clientId, table.period),
     check(
       'metric_metric_name_check',
-      sql`${table.metricName} in ('impressions', 'clicks', 'spend', 'ctr', 'cpl', 'roas', 'conversions', 'conversion_value')`,
+      sql`${table.metricName} in ('impressions', 'clicks', 'spend', 'ctr', 'cpl', 'roas', 'conversions', 'conversion_value', 'followers_start', 'followers_end', 'reach', 'profile_visits', 'link_clicks', 'interactions', 'posts_published', 'stories_published', 'video_views')`,
     ),
   ],
 );
@@ -151,7 +157,14 @@ export const reports = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     periodMonth: text('period_month').notNull(),
-    /** Client ids this report covers; `null` means every client in the org. */
+    /**
+     * The single client this report covers. Nullable for the legacy
+     * org-wide reports; every new report sets it.
+     */
+    clientId: uuid('client_id').references(() => clients.id, { onDelete: 'cascade' }),
+    /** Report template: `organic`, `ads` or `mixed` (both sections). */
+    profile: text('profile').notNull().default('ads'),
+    /** Legacy: client ids an org-wide report covered. Not written any more. */
     clientIds: jsonb('client_ids').$type<string[]>(),
     status: text('status').notNull().default('draft'),
     pdfUrl: text('pdf_url'),
@@ -165,10 +178,40 @@ export const reports = pgTable(
   (table) => [
     index('idx_report_org_id_created_at').on(table.orgId, table.createdAt),
     index('idx_report_shared_token').on(table.sharedToken),
+    index('idx_report_org_client_period').on(table.orgId, table.clientId, table.periodMonth),
     check(
       'report_status_check',
       sql`${table.status} in ('draft', 'generated', 'sent', 'shared')`,
     ),
+    check('report_profile_check', sql`${table.profile} in ('organic', 'ads', 'mixed')`),
+  ],
+);
+
+// ── report_post ───────────────────────────────────────────────────────────────
+// The month's best-performing posts for a client, entered alongside the organic
+// metric grid. The organic report shows the top few by interactions.
+export const reportPosts = pgTable(
+  'report_post',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => clients.id, { onDelete: 'cascade' }),
+    period: date('period').notNull(),
+    url: text('url').notNull(),
+    format: text('format'),
+    reach: numeric('reach', { precision: 14, scale: 2 }),
+    interactions: numeric('interactions', { precision: 14, scale: 2 }),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('idx_report_post_org_client_period').on(table.orgId, table.clientId, table.period),
   ],
 );
 
@@ -248,6 +291,7 @@ export type Membership = typeof memberships.$inferSelect;
 export type Client = typeof clients.$inferSelect;
 export type Metric = typeof metrics.$inferSelect;
 export type Report = typeof reports.$inferSelect;
+export type ReportPost = typeof reportPosts.$inferSelect;
 export type ReportComment = typeof reportComments.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type EmailEvent = typeof emailEvents.$inferSelect;
