@@ -4,7 +4,7 @@ import { generateReportAction } from '@/app/[orgSlug]/reports/actions';
 import { ClientOverviewCard } from '@/components/app/client-overview-card';
 import { ComparisonBarChart } from '@/components/app/comparison-bar-chart';
 import { DashboardControls } from '@/components/app/dashboard-controls';
-import { KpiCard } from '@/components/app/kpi-card';
+import { HeadlineKpis } from '@/components/app/headline-kpis';
 import { MultiTrendChart, TrendChart } from '@/components/app/trend-chart';
 import { getCurrentUser } from '@/lib/auth';
 import {
@@ -49,6 +49,12 @@ const METRICS: Record<ReportProfile, { kpi: MetricKey[]; chart: MetricKey[]; car
     spark: 'followers_end',
   },
   mixed: { kpi: [], chart: [], card: [], spark: 'impressions' },
+};
+
+/** The one or two metrics that matter most for each profile — featured on the panel. */
+const HERO: Record<'ads' | 'organic', MetricKey[]> = {
+  ads: ['roas', 'conversions'],
+  organic: ['follower_growth', 'engagement_rate'],
 };
 
 const REPORT_STATUS: Record<string, string> = {
@@ -210,11 +216,7 @@ export default async function DashboardPage({
           </div>
 
           {/* Headline KPIs for the window */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {m.kpi.map((key) => (
-              <KpiCard key={key} metricKey={key} value={totals[key]} previous={prevTotals[key]} />
-            ))}
-          </div>
+          <HeadlineKpis metricKeys={m.kpi} heroKeys={HERO[profile]} totals={totals} previous={prevTotals} />
 
           {/* Client comparison */}
           {showComparison ? (

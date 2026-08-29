@@ -9,6 +9,7 @@ import {
   formatMetric,
   monthLabel,
   monthsEndingAt,
+  nextMonth,
   pctChange,
   previousMonth,
 } from '@/lib/metrics';
@@ -180,6 +181,11 @@ describe('month helpers', () => {
   it('steps back one month across a year boundary', () => {
     expect(previousMonth('2026-01')).toBe('2025-12');
     expect(previousMonth('2026-08')).toBe('2026-07');
+  });
+
+  it('steps forward one month across a year boundary', () => {
+    expect(nextMonth('2025-12')).toBe('2026-01');
+    expect(nextMonth('2026-08')).toBe('2026-09');
   });
 
   it('lists N months ending at a given month, oldest first', () => {

@@ -341,6 +341,14 @@ export function previousMonth(periodMonth: string): string {
   return date.toISOString().slice(0, 7);
 }
 
+/** `2026-08` → `2026-09`. */
+export function nextMonth(periodMonth: string): string {
+  const [year, month] = periodMonth.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  date.setUTCMonth(date.getUTCMonth() + 1);
+  return date.toISOString().slice(0, 7);
+}
+
 /** The `count` months ending at `endMonth` inclusive, oldest first. */
 export function monthsEndingAt(endMonth: string, count: number): string[] {
   const [year, month] = endMonth.split('-').map(Number);
