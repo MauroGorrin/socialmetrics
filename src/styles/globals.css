@@ -31,6 +31,18 @@
   --chart-cpl: #f97316;
   --chart-roas: #ec4899;
 
+  /* Organic (social-media-management) series. */
+  --chart-followers_end: #3b82f6;
+  --chart-follower_growth: #6366f1;
+  --chart-reach: #14b8a6;
+  --chart-interactions: #ec4899;
+  --chart-engagement_rate: #06b6d4;
+  --chart-profile_visits: #8b5cf6;
+  --chart-link_clicks: #f59e0b;
+  --chart-video_views: #10b981;
+  --chart-posts_published: #64748b;
+  --chart-stories_published: #94a3b8;
+
   /* Distinct hues for comparing clients on one chart. */
   --client-1: #3b82f6;
   --client-2: #ec4899;

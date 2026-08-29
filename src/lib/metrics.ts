@@ -17,11 +17,56 @@ export const BASE_METRICS = [
 /** Metrics that are ratios — computed, never summed. */
 export const RATIO_METRICS = ['ctr', 'cpl', 'roas'] as const;
 
-export const ALL_METRICS = [...BASE_METRICS, ...RATIO_METRICS] as const;
+/**
+ * Organic (social-media-management) vocabulary. `reach`/`impressions`/… are
+ * additive over a period; `followers_start` / `followers_end` are point-in-time
+ * snapshots (never summed across months); the rest are derived.
+ */
+export const ORGANIC_POINT_METRICS = ['followers_start', 'followers_end'] as const;
+export const ORGANIC_SUM_METRICS = [
+  'reach',
+  'impressions',
+  'profile_visits',
+  'link_clicks',
+  'interactions',
+  'posts_published',
+  'stories_published',
+  'video_views',
+] as const;
+export const ORGANIC_DERIVED_METRICS = [
+  'follower_growth',
+  'follower_growth_rate',
+  'engagement_rate',
+] as const;
+export const ORGANIC_METRICS = [
+  ...ORGANIC_POINT_METRICS,
+  ...ORGANIC_SUM_METRICS,
+  ...ORGANIC_DERIVED_METRICS,
+] as const;
+
+/** Organic keys not already covered by the ads vocabulary (`impressions` is shared). */
+const ORGANIC_ONLY_KEYS = [
+  'followers_start',
+  'followers_end',
+  'reach',
+  'profile_visits',
+  'link_clicks',
+  'interactions',
+  'posts_published',
+  'stories_published',
+  'video_views',
+  'follower_growth',
+  'follower_growth_rate',
+  'engagement_rate',
+] as const;
+
+export const ALL_METRICS = [...BASE_METRICS, ...RATIO_METRICS, ...ORGANIC_ONLY_KEYS] as const;
 
 export type MetricKey = (typeof ALL_METRICS)[number];
 
 export type Kpis = Record<MetricKey, number>;
+
+export type ReportProfile = 'organic' | 'ads' | 'mixed';
 
 export const METRIC_LABELS: Record<MetricKey, string> = {
   impressions: 'Impresiones',
@@ -32,6 +77,18 @@ export const METRIC_LABELS: Record<MetricKey, string> = {
   ctr: 'CTR',
   cpl: 'CPL',
   roas: 'ROAS',
+  followers_start: 'Seguidores (inicio)',
+  followers_end: 'Seguidores (cierre)',
+  reach: 'Alcance',
+  profile_visits: 'Visitas al perfil',
+  link_clicks: 'Clics en el enlace',
+  interactions: 'Interacciones',
+  posts_published: 'Publicaciones',
+  stories_published: 'Historias',
+  video_views: 'Reproducciones de video',
+  follower_growth: 'Crecimiento de seguidores',
+  follower_growth_rate: 'Crecimiento de seguidores',
+  engagement_rate: 'Tasa de interacción',
 };
 
 /** Rotating palette for comparing clients on a single chart. */
@@ -56,28 +113,42 @@ export const METRIC_CHART_COLOR: Record<MetricKey, string> = {
   ctr: 'var(--chart-ctr)',
   cpl: 'var(--chart-cpl)',
   roas: 'var(--chart-roas)',
+  followers_start: 'var(--chart-followers_end)',
+  followers_end: 'var(--chart-followers_end)',
+  reach: 'var(--chart-reach)',
+  profile_visits: 'var(--chart-profile_visits)',
+  link_clicks: 'var(--chart-link_clicks)',
+  interactions: 'var(--chart-interactions)',
+  posts_published: 'var(--chart-posts_published)',
+  stories_published: 'var(--chart-stories_published)',
+  video_views: 'var(--chart-video_views)',
+  follower_growth: 'var(--chart-follower_growth)',
+  follower_growth_rate: 'var(--chart-follower_growth)',
+  engagement_rate: 'var(--chart-engagement_rate)',
 };
 
 /** Ratios where a smaller number is the better result (only CPL). */
 export const LOWER_IS_BETTER: Partial<Record<MetricKey, boolean>> = { cpl: true };
 
 /** Metrics whose movement is neither good nor bad on its own. */
-export const NEUTRAL_METRICS: Partial<Record<MetricKey, boolean>> = { spend: true };
+export const NEUTRAL_METRICS: Partial<Record<MetricKey, boolean>> = {
+  spend: true,
+  followers_start: true,
+};
 
 export function isBaseMetric(name: string): name is (typeof BASE_METRICS)[number] {
   return (BASE_METRICS as readonly string[]).includes(name);
 }
 
-const ZERO_KPIS: Kpis = {
-  impressions: 0,
-  clicks: 0,
-  spend: 0,
-  conversions: 0,
-  conversion_value: 0,
-  ctr: 0,
-  cpl: 0,
-  roas: 0,
-};
+export function isOrganicSumMetric(name: string): name is (typeof ORGANIC_SUM_METRICS)[number] {
+  return (ORGANIC_SUM_METRICS as readonly string[]).includes(name);
+}
+
+export function isOrganicPointMetric(name: string): name is (typeof ORGANIC_POINT_METRICS)[number] {
+  return (ORGANIC_POINT_METRICS as readonly string[]).includes(name);
+}
+
+const ZERO_KPIS: Kpis = Object.fromEntries(ALL_METRICS.map((key) => [key, 0])) as Kpis;
 
 export function emptyKpis(): Kpis {
   return { ...ZERO_KPIS };
@@ -99,6 +170,7 @@ export function computeKpis(
   const conversionValue = sums.conversion_value ?? 0;
 
   return {
+    ...ZERO_KPIS,
     impressions,
     clicks,
     spend,
@@ -126,6 +198,84 @@ export function addKpis(a: Kpis, b: Kpis): Kpis {
   });
 }
 
+/**
+ * Assemble the organic KPI set from one month's raw figures. `followers_start` /
+ * `followers_end` are taken as given; `follower_growth`, its rate and the
+ * engagement rate are derived. Engagement rate is interactions ÷ reach (× 100),
+ * falling back to interactions ÷ closing followers when reach is absent.
+ */
+export function computeOrganicKpis(values: Partial<Record<MetricKey, number>>): Kpis {
+  const followersStart = values.followers_start ?? 0;
+  const followersEnd = values.followers_end ?? 0;
+  const reach = values.reach ?? 0;
+  const interactions = values.interactions ?? 0;
+  const growth = followersEnd - followersStart;
+
+  return {
+    ...ZERO_KPIS,
+    followers_start: followersStart,
+    followers_end: followersEnd,
+    reach,
+    impressions: values.impressions ?? 0,
+    profile_visits: values.profile_visits ?? 0,
+    link_clicks: values.link_clicks ?? 0,
+    interactions,
+    posts_published: values.posts_published ?? 0,
+    stories_published: values.stories_published ?? 0,
+    video_views: values.video_views ?? 0,
+    follower_growth: growth,
+    follower_growth_rate: followersStart > 0 ? (growth / followersStart) * 100 : 0,
+    engagement_rate:
+      reach > 0
+        ? (interactions / reach) * 100
+        : followersEnd > 0
+          ? (interactions / followersEnd) * 100
+          : 0,
+  };
+}
+
+/**
+ * Combine two clients' organic KPIs for the same month: additive metrics add,
+ * follower counts add (total audience), and the rates are recomputed. To roll a
+ * single client across months use {@link aggregateOrganicKpis} instead — there
+ * follower counts are snapshots, not sums.
+ */
+export function addOrganicKpis(a: Kpis, b: Kpis): Kpis {
+  const values: Partial<Record<MetricKey, number>> = {
+    followers_start: a.followers_start + b.followers_start,
+    followers_end: a.followers_end + b.followers_end,
+  };
+  for (const key of ORGANIC_SUM_METRICS) {
+    values[key] = a[key] + b[key];
+  }
+  return computeOrganicKpis(values);
+}
+
+/**
+ * Roll one series of monthly organic KPIs into a single figure for the window:
+ * additive metrics are summed, `followers_start` comes from the earliest month
+ * with data and `followers_end` from the latest, and the rates are recomputed.
+ */
+export function aggregateOrganicKpis(byMonth: Record<string, Kpis>, months: string[]): Kpis {
+  if (months.length === 0) return emptyKpis();
+
+  const values: Partial<Record<MetricKey, number>> = {};
+  for (const key of ORGANIC_SUM_METRICS) {
+    values[key] = months.reduce((acc, month) => acc + (byMonth[month]?.[key] ?? 0), 0);
+  }
+  // A month with no data reads as 0 for every field — skip those when picking
+  // the opening / closing follower snapshots.
+  values.followers_start =
+    months.map((month) => byMonth[month]?.followers_start ?? 0).find((value) => value > 0) ?? 0;
+  values.followers_end =
+    [...months]
+      .reverse()
+      .map((month) => byMonth[month]?.followers_end ?? 0)
+      .find((value) => value > 0) ?? 0;
+
+  return computeOrganicKpis(values);
+}
+
 /** Percentage change from `prev` to `cur`; `null` when there is no baseline. */
 export function pctChange(cur: number, prev: number): number | null {
   if (!Number.isFinite(prev) || prev === 0) return null;
@@ -151,6 +301,8 @@ const NUM2 = new Intl.NumberFormat('es', { maximumFractionDigits: 2 });
 export function formatMetric(key: MetricKey, value: number): string {
   switch (key) {
     case 'ctr':
+    case 'engagement_rate':
+    case 'follower_growth_rate':
       return `${NUM2.format(value)}%`;
     case 'roas':
       return `${NUM2.format(value)}x`;
