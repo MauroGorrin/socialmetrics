@@ -1,7 +1,14 @@
+'use client';
+
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 /** Themed 404 for anything under `/[orgSlug]/` that does not resolve. */
 export default function OrgNotFound() {
+  const params = useParams<{ orgSlug?: string }>();
+  const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : undefined;
+  const panelHref = orgSlug ? `/${orgSlug}/dashboard` : '/dashboard';
+
   return (
     <div className="mx-auto flex min-h-[60dvh] w-full max-w-md flex-col items-center justify-center gap-4 p-6 text-center">
       <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
@@ -12,7 +19,7 @@ export default function OrgNotFound() {
         El enlace puede estar roto o la sección ya no existe.
       </p>
       <Link
-        href="/dashboard"
+        href={panelHref}
         className="rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90"
       >
         Volver al panel
