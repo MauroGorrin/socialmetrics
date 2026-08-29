@@ -28,6 +28,7 @@
     "@supabase/supabase-js": "^2",
     "@tanstack/react-query": "^5",
     "drizzle-orm": "0.45.2",
+    "exceljs": "4.4.0",
     "next": "14.2.35",
     "postgres": "^3.4.9",
     "puppeteer": "^25",
@@ -36,6 +37,7 @@
     "react-dom": "18.3.1",
     "recharts": "^3",
     "resend": "^6",
+    "server-only": "0.0.1",
     "zod": "^4"
   },
   "devDependencies": {

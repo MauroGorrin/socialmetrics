@@ -59,6 +59,38 @@ export async function createMetric(input: NewMetric): Promise<Metric> {
   return row;
 }
 
+type MetricRow = {
+  orgId: string;
+  clientId: string;
+  createdBy: string;
+  updatedBy: string;
+  metricName: MetricKey;
+  metricValue: string;
+  period: string;
+};
+
+/** One month's values, shaped into insertable rows — shared by the single-month and bulk writers. */
+function metricRowsFor(
+  orgId: string,
+  clientId: string,
+  actorId: string,
+  periodMonth: string,
+  values: Partial<Record<MetricKey, number>>,
+): MetricRow[] {
+  const period = firstOfMonth(periodMonth);
+  return (Object.entries(values) as Array<[MetricKey, number | undefined]>)
+    .filter(([, value]) => value != null && Number.isFinite(value))
+    .map(([metricName, value]) => ({
+      orgId,
+      clientId,
+      createdBy: actorId,
+      updatedBy: actorId,
+      metricName,
+      metricValue: (value as number).toFixed(2),
+      period,
+    }));
+}
+
 /**
  * Replace a client's whole month with the figures from the monthly entry grid.
  * Every existing metric row for that client + month (base or ratio, whatever
@@ -74,19 +106,7 @@ export async function upsertMonthlyMetrics(input: {
   values: Partial<Record<MetricKey, number>>;
 }): Promise<void> {
   const { from, to } = monthBounds(input.periodMonth);
-  const period = firstOfMonth(input.periodMonth);
-
-  const rows = (Object.entries(input.values) as Array<[MetricKey, number | undefined]>)
-    .filter(([, value]) => value != null && Number.isFinite(value))
-    .map(([metricName, value]) => ({
-      orgId: input.orgId,
-      clientId: input.clientId,
-      createdBy: input.actorId,
-      updatedBy: input.actorId,
-      metricName,
-      metricValue: (value as number).toFixed(2),
-      period,
-    }));
+  const rows = metricRowsFor(input.orgId, input.clientId, input.actorId, input.periodMonth, input.values);
 
   await db.transaction(async (tx) => {
     await tx
@@ -101,6 +121,38 @@ export async function upsertMonthlyMetrics(input: {
       );
     if (rows.length > 0) {
       await tx.insert(metrics).values(rows);
+    }
+  });
+}
+
+/**
+ * Same "clear the month, rewrite it" contract as {@link upsertMonthlyMetrics},
+ * for every given month in **one transaction** — the bulk Excel-upload path.
+ * Either every month in the file is replaced, or (on any error) none are.
+ */
+export async function upsertMonthlyMetricsBulk(input: {
+  orgId: string;
+  clientId: string;
+  actorId: string;
+  months: Array<{ periodMonth: string; values: Partial<Record<MetricKey, number>> }>;
+}): Promise<void> {
+  await db.transaction(async (tx) => {
+    for (const { periodMonth, values } of input.months) {
+      const { from, to } = monthBounds(periodMonth);
+      const rows = metricRowsFor(input.orgId, input.clientId, input.actorId, periodMonth, values);
+      await tx
+        .delete(metrics)
+        .where(
+          and(
+            eq(metrics.orgId, input.orgId),
+            eq(metrics.clientId, input.clientId),
+            gte(metrics.period, from),
+            lt(metrics.period, to),
+          ),
+        );
+      if (rows.length > 0) {
+        await tx.insert(metrics).values(rows);
+      }
     }
   });
 }

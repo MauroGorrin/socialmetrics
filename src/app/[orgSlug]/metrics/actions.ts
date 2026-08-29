@@ -3,17 +3,18 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
-import {
-  type MetricKey,
-  ORGANIC_POINT_METRICS,
-  ORGANIC_SUM_METRICS,
-  type ReportProfile,
-} from '@/lib/metrics';
-import { ForbiddenError, requireMembership, TenantError } from '@/server/auth/guards';
+import { keysForProfile, type MetricKey, type ReportProfile } from '@/lib/metrics';
+import { parseMetricsWorkbook } from '@/lib/metrics-excel';
+import { ForbiddenError, requireMembership, requireRole, TenantError } from '@/server/auth/guards';
 import { db } from '@/server/db';
 import { auditLogs } from '@/server/db/schema';
 import { getClient } from '@/server/queries/clients';
-import { type MonthlyPostInput, upsertMonthlyMetrics, upsertMonthlyPosts } from '@/server/mutations/metrics';
+import {
+  type MonthlyPostInput,
+  upsertMonthlyMetrics,
+  upsertMonthlyMetricsBulk,
+  upsertMonthlyPosts,
+} from '@/server/mutations/metrics';
 
 /**
  * Monthly metric entry. Any member may enter metrics. One action writes the
@@ -21,17 +22,6 @@ import { type MonthlyPostInput, upsertMonthlyMetrics, upsertMonthlyPosts } from 
  * profile (ads figures, organic figures, or both) plus the best-posts list for
  * organic / mixed clients.
  */
-
-const ADS_KEYS = ['impressions', 'clicks', 'spend', 'conversions', 'conversion_value'] as const;
-const ORGANIC_KEYS = [...ORGANIC_POINT_METRICS, ...ORGANIC_SUM_METRICS];
-
-/** The metric keys a given profile's grid submits. `impressions` is shared. */
-function keysForProfile(profile: ReportProfile): MetricKey[] {
-  if (profile === 'ads') return [...ADS_KEYS];
-  if (profile === 'organic') return [...ORGANIC_KEYS];
-  // mixed: ads + organic, with the shared `impressions` counted once.
-  return [...new Set<MetricKey>([...ADS_KEYS, ...ORGANIC_KEYS])];
-}
 
 const MAX_POSTS = 5;
 const FORMATS = ['reel', 'carousel', 'image', 'story', 'video'] as const;
@@ -137,4 +127,119 @@ export async function saveMonthlyMetricsAction(formData: FormData): Promise<void
   }
 
   redirect(target);
+}
+
+/**
+ * Bulk load via Excel — owner/admin only (it can overwrite many months at
+ * once, unlike the single-month grid above which any member may use).
+ */
+
+const MAX_EXCEL_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
+
+const uploadSchema = z.object({
+  orgSlug: z.string().min(1),
+  clientId: z.uuid(),
+});
+
+export type ExcelPreviewRow = {
+  periodMonth: string;
+  values: Partial<Record<MetricKey, number>>;
+  errors: string[];
+};
+
+export type ExcelUploadResult = { ok: true; data: ExcelPreviewRow[] } | { ok: false; error: string };
+
+type ParsedUpload = {
+  orgId: string;
+  clientId: string;
+  actorId: string;
+  rows: ExcelPreviewRow[];
+};
+
+/** Auth, file checks and parsing — shared by the preview and the commit step. */
+async function readAndParseUpload(
+  formData: FormData,
+): Promise<{ ok: true; data: ParsedUpload } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: 'No autenticado.' };
+
+  const parsedInput = uploadSchema.safeParse({
+    orgSlug: field(formData, 'orgSlug'),
+    clientId: field(formData, 'clientId'),
+  });
+  if (!parsedInput.success) return { ok: false, error: 'Solicitud inválida.' };
+
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: 'Adjuntá un archivo .xlsx con datos.' };
+  }
+  if (file.size > MAX_EXCEL_FILE_BYTES) {
+    return { ok: false, error: 'El archivo es demasiado grande (máx. 2 MB).' };
+  }
+
+  try {
+    const { org } = await requireRole(parsedInput.data.orgSlug, user.id, 'admin');
+    const client = await getClient(org.id, parsedInput.data.clientId);
+    if (!client) return { ok: false, error: 'Ese cliente ya no existe.' };
+
+    const profile = (client.reportProfile as ReportProfile) ?? 'ads';
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const result = await parseMetricsWorkbook(buffer, profile);
+    if (!result.ok) return { ok: false, error: result.error };
+
+    return {
+      ok: true,
+      data: { orgId: org.id, clientId: client.id, actorId: user.id, rows: result.rows },
+    };
+  } catch (error) {
+    if (error instanceof ForbiddenError || error instanceof TenantError) {
+      return { ok: false, error: 'No tienes permiso para cargar métricas en bloque en esta organización.' };
+    }
+    throw error;
+  }
+}
+
+/** Parse and validate an uploaded workbook. Writes nothing — the preview step. */
+export async function previewMetricsExcelAction(formData: FormData): Promise<ExcelUploadResult> {
+  const outcome = await readAndParseUpload(formData);
+  if (!outcome.ok) return outcome;
+  return { ok: true, data: outcome.data.rows };
+}
+
+/**
+ * Re-parses the same file — never trusts numbers echoed back from the
+ * preview — and, only if every row is error-free, replaces every month it
+ * contains in one transaction. A month with no cell filled in at all is left
+ * untouched, not cleared.
+ */
+export async function commitMetricsExcelAction(formData: FormData): Promise<ExcelUploadResult> {
+  const outcome = await readAndParseUpload(formData);
+  if (!outcome.ok) return outcome;
+
+  const { orgId, clientId, actorId, rows } = outcome.data;
+  if (rows.some((row) => row.errors.length > 0)) {
+    return { ok: false, error: 'El archivo tiene filas con errores — corregilas y subilo de nuevo.' };
+  }
+
+  const monthsToWrite = rows.filter((row) => Object.keys(row.values).length > 0);
+  if (monthsToWrite.length === 0) {
+    return { ok: false, error: 'El archivo no tiene ningún mes con datos para guardar.' };
+  }
+
+  await upsertMonthlyMetricsBulk({
+    orgId,
+    clientId,
+    actorId,
+    months: monthsToWrite.map((row) => ({ periodMonth: row.periodMonth, values: row.values })),
+  });
+
+  await db.insert(auditLogs).values({
+    orgId,
+    actorId,
+    action: 'metric.month.bulk_upload',
+    targetId: clientId,
+    metadata: { months: monthsToWrite.map((row) => row.periodMonth) },
+  });
+
+  return { ok: true, data: rows };
 }

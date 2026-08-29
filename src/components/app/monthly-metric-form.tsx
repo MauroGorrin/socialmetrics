@@ -9,6 +9,7 @@ import {
   formatMetric,
   METRIC_LABELS,
   type MetricKey,
+  ORGANIC_FIELD_ORDER,
   RATIO_METRICS,
   type ReportProfile,
 } from '@/lib/metrics';
@@ -34,23 +35,13 @@ const FIELD =
 const ADS_KEYS: MetricKey[] = [...BASE_METRICS];
 const ADS_PREVIEW: MetricKey[] = [...RATIO_METRICS];
 
-/** Organic input fields, in entry order. `impressions` is shared with the ads section. */
-const ORGANIC_ORDER: MetricKey[] = [
-  'followers_start',
-  'followers_end',
-  'reach',
-  'impressions',
-  'interactions',
-  'profile_visits',
-  'link_clicks',
-  'video_views',
-  'posts_published',
-  'stories_published',
-];
 const ORGANIC_PREVIEW: MetricKey[] = ['follower_growth', 'follower_growth_rate', 'engagement_rate'];
 
+/** `impressions` is shared with the ads section, so it's dropped here for a mixed profile. */
 function organicKeys(profile: ReportProfile): MetricKey[] {
-  return profile === 'mixed' ? ORGANIC_ORDER.filter((key) => key !== 'impressions') : ORGANIC_ORDER;
+  return profile === 'mixed'
+    ? ORGANIC_FIELD_ORDER.filter((key) => key !== 'impressions')
+    : ORGANIC_FIELD_ORDER;
 }
 
 /** Read the given numeric fields straight off the form DOM. */
@@ -122,7 +113,7 @@ export function MonthlyMetricForm({
   const organicKpis = computeOrganicKpis(preview);
 
   function onChange(event: FormEvent<HTMLFormElement>) {
-    setPreview(readValues(event.currentTarget, [...ADS_KEYS, ...ORGANIC_ORDER]));
+    setPreview(readValues(event.currentTarget, [...ADS_KEYS, ...ORGANIC_FIELD_ORDER]));
   }
 
   return (

@@ -44,6 +44,24 @@ export const ORGANIC_METRICS = [
   ...ORGANIC_DERIVED_METRICS,
 ] as const;
 
+/**
+ * Organic input fields, in the app's canonical entry order — shared by the
+ * on-screen monthly grid and the Excel template so the two never drift apart.
+ * `impressions` is shared with the ads vocabulary.
+ */
+export const ORGANIC_FIELD_ORDER: MetricKey[] = [
+  'followers_start',
+  'followers_end',
+  'reach',
+  'impressions',
+  'interactions',
+  'profile_visits',
+  'link_clicks',
+  'video_views',
+  'posts_published',
+  'stories_published',
+];
+
 /** Organic keys not already covered by the ads vocabulary (`impressions` is shared). */
 const ORGANIC_ONLY_KEYS = [
   'followers_start',
@@ -146,6 +164,18 @@ export function isOrganicSumMetric(name: string): name is (typeof ORGANIC_SUM_ME
 
 export function isOrganicPointMetric(name: string): name is (typeof ORGANIC_POINT_METRICS)[number] {
   return (ORGANIC_POINT_METRICS as readonly string[]).includes(name);
+}
+
+/**
+ * The metric keys a given profile's monthly entry covers — the on-screen
+ * grid, the server action that reads its fields, and the Excel template all
+ * share this so the field set can't drift between them.
+ */
+export function keysForProfile(profile: ReportProfile): MetricKey[] {
+  if (profile === 'ads') return [...BASE_METRICS];
+  if (profile === 'organic') return [...ORGANIC_FIELD_ORDER];
+  // mixed: ads + organic, with the shared `impressions` counted once.
+  return [...new Set<MetricKey>([...BASE_METRICS, ...ORGANIC_FIELD_ORDER])];
 }
 
 const ZERO_KPIS: Kpis = Object.fromEntries(ALL_METRICS.map((key) => [key, 0])) as Kpis;

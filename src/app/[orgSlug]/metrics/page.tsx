@@ -1,10 +1,15 @@
 import { notFound, redirect } from 'next/navigation';
-import { saveMonthlyMetricsAction } from '@/app/[orgSlug]/metrics/actions';
+import {
+  commitMetricsExcelAction,
+  previewMetricsExcelAction,
+  saveMonthlyMetricsAction,
+} from '@/app/[orgSlug]/metrics/actions';
+import { MetricsExcelUpload } from '@/components/app/metrics-excel-upload';
 import { MonthlyMetricForm } from '@/components/app/monthly-metric-form';
 import type { PostRow } from '@/components/app/top-posts-fields';
 import { getCurrentUser } from '@/lib/auth';
 import { PROFILE_LABELS } from '@/lib/client-profile';
-import { currentMonth, monthLabel, type ReportProfile } from '@/lib/metrics';
+import { currentMonth, keysForProfile, monthLabel, type ReportProfile } from '@/lib/metrics';
 import { listClients } from '@/server/queries/clients';
 import { monthlyMetricValues, monthlyPosts } from '@/server/queries/metrics';
 import { getAccessibleOrg } from '@/server/queries/orgs';
@@ -18,6 +23,8 @@ const NOTICES: Record<string, string> = {
 
 const CONTROL =
   'rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--fg)]';
+const BTN =
+  'rounded border border-[var(--border)] px-4 py-2 text-sm text-[var(--fg)] transition-opacity duration-150 hover:opacity-70';
 
 export default async function MetricsEntryPage({
   params,
@@ -32,6 +39,7 @@ export default async function MetricsEntryPage({
   const access = await getAccessibleOrg(params.orgSlug, user.id);
   if (!access) notFound();
 
+  const canBulkUpload = access.role === 'owner' || access.role === 'admin';
   const clients = await listClients(access.org.id);
   const month =
     typeof searchParams.month === 'string' && /^\d{4}-\d{2}$/.test(searchParams.month)
@@ -104,10 +112,7 @@ export default async function MetricsEntryPage({
               Mes
               <input type="month" name="month" defaultValue={month} className={CONTROL} />
             </label>
-            <button
-              type="submit"
-              className="rounded border border-[var(--border)] px-4 py-2 text-sm text-[var(--fg)] transition-opacity duration-150 hover:opacity-70"
-            >
+            <button type="submit" className={BTN}>
               Ver
             </button>
           </form>
@@ -124,6 +129,45 @@ export default async function MetricsEntryPage({
               initialPosts={initialPosts}
               action={saveMonthlyMetricsAction}
             />
+          ) : null}
+
+          {activeClient && canBulkUpload ? (
+            <div className="space-y-4 border-t border-[var(--border)] pt-6">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--fg)]">Carga en bloque</h2>
+                <p className="text-sm text-[var(--fg-muted)]">
+                  Para cargar varios meses de una — un histórico, o un cliente que ya lleva sus números
+                  en una planilla.
+                </p>
+              </div>
+
+              <form
+                method="get"
+                action={`/api/orgs/${params.orgSlug}/metrics/template`}
+                className="flex flex-wrap items-end gap-3"
+              >
+                <input type="hidden" name="client" value={activeClient.id} />
+                <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
+                  Meses a incluir
+                  <select name="months" defaultValue="12" className={CONTROL}>
+                    <option value="6">6 meses</option>
+                    <option value="12">12 meses</option>
+                    <option value="24">24 meses</option>
+                  </select>
+                </label>
+                <button type="submit" className={BTN}>
+                  Descargar plantilla
+                </button>
+              </form>
+
+              <MetricsExcelUpload
+                orgSlug={params.orgSlug}
+                clientId={activeClient.id}
+                metricKeys={keysForProfile(activeProfile)}
+                preview={previewMetricsExcelAction}
+                commit={commitMetricsExcelAction}
+              />
+            </div>
           ) : null}
         </>
       )}

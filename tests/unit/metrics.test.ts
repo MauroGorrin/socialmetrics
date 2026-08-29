@@ -7,6 +7,7 @@ import {
   computeKpis,
   computeOrganicKpis,
   formatMetric,
+  keysForProfile,
   monthLabel,
   monthsEndingAt,
   nextMonth,
@@ -194,5 +195,30 @@ describe('month helpers', () => {
 
   it('labels a month in Spanish', () => {
     expect(monthLabel('2026-08')).toMatch(/agosto/i);
+  });
+});
+
+describe('keysForProfile', () => {
+  it('gives ads just the base metrics', () => {
+    expect(keysForProfile('ads')).toEqual([
+      'impressions',
+      'clicks',
+      'spend',
+      'conversions',
+      'conversion_value',
+    ]);
+  });
+
+  it('gives organic the canonical field order, never a ratio', () => {
+    const keys = keysForProfile('organic');
+    expect(keys).toContain('followers_end');
+    expect(keys).not.toContain('engagement_rate'); // derived, never entered
+  });
+
+  it('gives mixed the union of both, impressions counted once', () => {
+    const keys = keysForProfile('mixed');
+    expect(keys.filter((key) => key === 'impressions')).toHaveLength(1);
+    expect(keys).toContain('spend');
+    expect(keys).toContain('followers_end');
   });
 });
