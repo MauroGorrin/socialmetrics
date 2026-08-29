@@ -17,6 +17,9 @@ export const maxDuration = 60;
 const schema = z.object({
   orgSlug: z.string().min(1),
   periodMonth: z.string().regex(/^\d{4}-\d{2}$/),
+  /** The single client this report is for. Omit for a legacy org-wide report. */
+  clientId: z.uuid().optional(),
+  /** Legacy multi-client selection. */
   clientIds: z.array(z.uuid()).optional(),
 });
 
@@ -36,6 +39,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       orgName: org.name,
       actorId: user.id,
       periodMonth: body.data.periodMonth,
+      clientId: body.data.clientId ?? null,
       clientIds: body.data.clientIds ?? [],
     });
     if (!result.ok) {

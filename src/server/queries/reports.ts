@@ -229,30 +229,45 @@ export type ClientMonthlySeries = {
   clientId: string;
   clientName: string;
   clientPlatform: string;
+  clientProfile: ReportProfile;
   byMonth: Record<string, Kpis>;
 };
 
-/**
- * Every active client's KPIs for each of the given months — one query for the
- * whole dashboard's per-client charts. Clients with no data still appear.
- */
-export async function clientMonthlySeries(
+/** The month grid for every active client, keyed and aggregated by `build`. */
+async function clientSeries(
   orgId: string,
   months: string[],
+  profiles: ReportProfile[],
+  build: (rows: Array<{ key: string; name: string; sum: string; avg: string }>) => Map<string, Kpis>,
+  empty: () => Kpis,
 ): Promise<ClientMonthlySeries[]> {
   const activeClients = await db
-    .select({ id: clients.id, name: clients.name, platform: clients.platform })
+    .select({
+      id: clients.id,
+      name: clients.name,
+      platform: clients.platform,
+      profile: clients.reportProfile,
+    })
     .from(clients)
-    .where(and(eq(clients.orgId, orgId), isNull(clients.deletedAt)))
+    .where(
+      and(
+        eq(clients.orgId, orgId),
+        isNull(clients.deletedAt),
+        inArray(clients.reportProfile, profiles),
+      ),
+    )
     .orderBy(clients.name);
 
+  const base = (client: (typeof activeClients)[number], byMonth: Record<string, Kpis>) => ({
+    clientId: client.id,
+    clientName: client.name,
+    clientPlatform: client.platform,
+    clientProfile: client.profile as ReportProfile,
+    byMonth,
+  });
+
   if (activeClients.length === 0 || months.length === 0) {
-    return activeClients.map((client) => ({
-      clientId: client.id,
-      clientName: client.name,
-      clientPlatform: client.platform,
-      byMonth: {},
-    }));
+    return activeClients.map((client) => base(client, {}));
   }
 
   const from = monthBounds(months[0]).from;
@@ -279,23 +294,56 @@ export async function clientMonthlySeries(
     )
     .groupBy(metrics.clientId, sql`to_char(${metrics.period}, 'YYYY-MM')`, metrics.metricName);
 
-  // key rows as `clientId|month` for splitAggregates, then unpack.
-  const combined = splitAggregates(
-    rows.map((row) => ({ key: `${row.clientId}|${row.month}`, name: row.name, sum: row.sum, avg: row.avg })),
+  const combined = build(
+    rows.map((row) => ({
+      key: `${row.clientId}|${row.month}`,
+      name: row.name,
+      sum: row.sum,
+      avg: row.avg,
+    })),
   );
 
   return activeClients.map((client) => {
     const byMonth: Record<string, Kpis> = {};
     for (const month of months) {
-      byMonth[month] = combined.get(`${client.id}|${month}`) ?? computeKpis({});
+      byMonth[month] = combined.get(`${client.id}|${month}`) ?? empty();
     }
-    return {
-      clientId: client.id,
-      clientName: client.name,
-      clientPlatform: client.platform,
-      byMonth,
-    };
+    return base(client, byMonth);
   });
+}
+
+/**
+ * Every ads / mixed client's KPIs for each of the given months — one query for
+ * the dashboard's per-client charts. Clients with no data still appear.
+ */
+export function clientMonthlySeries(
+  orgId: string,
+  months: string[],
+): Promise<ClientMonthlySeries[]> {
+  return clientSeries(orgId, months, ['ads', 'mixed'], splitAggregates, () => computeKpis({}));
+}
+
+/** The organic equivalent — every organic / mixed client's organic KPIs. */
+export function clientOrganicMonthlySeries(
+  orgId: string,
+  months: string[],
+): Promise<ClientMonthlySeries[]> {
+  return clientSeries(orgId, months, ['organic', 'mixed'], splitOrganicAggregates, emptyKpis);
+}
+
+/** Bucket sum rows by `clientId|month` key into organic KPI sets. */
+function splitOrganicAggregates(
+  rows: Array<{ key: string; name: string; sum: string }>,
+): Map<string, Kpis> {
+  const raw = new Map<string, Partial<Record<MetricKey, number>>>();
+  for (const row of rows) {
+    const bucket = raw.get(row.key) ?? {};
+    bucket[row.name as MetricKey] = Number(row.sum ?? 0);
+    raw.set(row.key, bucket);
+  }
+  const out = new Map<string, Kpis>();
+  for (const [key, values] of raw) out.set(key, computeOrganicKpis(values));
+  return out;
 }
 
 /** Combined org KPIs for each of the given months (`YYYY-MM`), keyed by month. */

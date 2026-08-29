@@ -9,7 +9,9 @@ import { MultiTrendChart, TrendChart } from '@/components/app/trend-chart';
 import { getCurrentUser } from '@/lib/auth';
 import {
   addKpis,
+  addOrganicKpis,
   aggregateKpis,
+  aggregateOrganicKpis,
   currentMonth,
   emptyKpis,
   type Kpis,
@@ -18,18 +20,36 @@ import {
   metricSeries,
   monthLabel,
   monthsEndingAt,
+  type ReportProfile,
   shortMonthLabel,
 } from '@/lib/metrics';
 import { getAccessibleOrg } from '@/server/queries/orgs';
-import { clientMonthlySeries, listReports } from '@/server/queries/reports';
+import {
+  clientMonthlySeries,
+  clientOrganicMonthlySeries,
+  listReports,
+} from '@/server/queries/reports';
 
 const GHOST_BTN =
   'rounded border border-[var(--border)] px-4 py-2 text-sm text-[var(--fg)] transition-opacity duration-150 hover:opacity-70';
 const PRIMARY_BTN =
   'rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90';
 
-const KPI_METRICS: MetricKey[] = ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'roas'];
-const CHART_METRICS: MetricKey[] = ['impressions', 'clicks', 'spend', 'roas'];
+const METRICS: Record<ReportProfile, { kpi: MetricKey[]; chart: MetricKey[]; card: MetricKey[]; spark: MetricKey }> = {
+  ads: {
+    kpi: ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'roas'],
+    chart: ['impressions', 'clicks', 'spend', 'roas'],
+    card: ['impressions', 'spend', 'ctr', 'roas'],
+    spark: 'impressions',
+  },
+  organic: {
+    kpi: ['followers_end', 'follower_growth', 'follower_growth_rate', 'reach', 'interactions', 'engagement_rate'],
+    chart: ['followers_end', 'reach', 'interactions', 'engagement_rate'],
+    card: ['followers_end', 'follower_growth', 'engagement_rate', 'reach'],
+    spark: 'followers_end',
+  },
+  mixed: { kpi: [], chart: [], card: [], spark: 'impressions' },
+};
 
 const REPORT_STATUS: Record<string, string> = {
   draft: 'Borrador',
@@ -45,8 +65,10 @@ const PERIOD_LABEL: Record<number, string> = {
   12: 'los últimos 12 meses',
 };
 
-function hasData(kpis: Kpis): boolean {
-  return kpis.impressions + kpis.clicks + kpis.spend + kpis.conversions + kpis.conversion_value > 0;
+function hasDataFor(profile: 'ads' | 'organic', kpis: Kpis): boolean {
+  return profile === 'organic'
+    ? kpis.followers_end + kpis.reach + kpis.interactions + kpis.impressions > 0
+    : kpis.impressions + kpis.clicks + kpis.spend + kpis.conversions + kpis.conversion_value > 0;
 }
 
 export default async function DashboardPage({
@@ -54,7 +76,7 @@ export default async function DashboardPage({
   searchParams,
 }: {
   params: { orgSlug: string };
-  searchParams: { month?: string; period?: string; client?: string };
+  searchParams: { month?: string; period?: string; client?: string; profile?: string };
 }) {
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/signin?redirect=/${params.orgSlug}/dashboard`);
@@ -71,6 +93,7 @@ export default async function DashboardPage({
     ? Number(searchParams.period)
     : 6;
   const clientFilter = typeof searchParams.client === 'string' ? searchParams.client : '';
+  const profile: 'ads' | 'organic' = searchParams.profile === 'organic' ? 'organic' : 'ads';
   const canGenerate = access.role === 'owner' || access.role === 'admin';
 
   const fetchMonths = monthsEndingAt(month, Math.max(period * 2, 6));
@@ -79,10 +102,20 @@ export default async function DashboardPage({
   const prevWindow = doubleWindow.slice(0, period);
   const windowMonths = doubleWindow.slice(period);
 
-  const [allClients, monthReports] = await Promise.all([
+  const [adsSeries, organicSeries, monthReports] = await Promise.all([
     clientMonthlySeries(orgId, fetchMonths),
+    clientOrganicMonthlySeries(orgId, fetchMonths),
     listReports(orgId, { month }),
   ]);
+
+  const showProfileToggle = adsSeries.length > 0 && organicSeries.length > 0;
+  const allClients = profile === 'organic' ? organicSeries : adsSeries;
+  const anyClients = adsSeries.length + organicSeries.length > 0;
+
+  const m = METRICS[profile];
+  const addFn = profile === 'organic' ? addOrganicKpis : addKpis;
+  const aggFn = profile === 'organic' ? aggregateOrganicKpis : aggregateKpis;
+
   const report = clientFilter
     ? (monthReports.find((r) => r.clientId === clientFilter) ?? null)
     : null;
@@ -94,14 +127,14 @@ export default async function DashboardPage({
     clientFilter && clients[0] ? clients[0].clientName : 'Todos los clientes';
   const singleClient = clients.length === 1;
 
-  // Org (or single-client) totals per month, then windowed.
+  // Combined (or single-client) figures per month, then windowed.
   const byMonth: Record<string, Kpis> = {};
-  for (const m of fetchMonths) {
-    byMonth[m] = clients.reduce((acc, cs) => addKpis(acc, cs.byMonth[m]), emptyKpis());
+  for (const key of fetchMonths) {
+    byMonth[key] = clients.reduce((acc, cs) => addFn(acc, cs.byMonth[key]), emptyKpis());
   }
-  const totals = aggregateKpis(byMonth, windowMonths);
-  const prevTotals = aggregateKpis(byMonth, prevWindow);
-  const showComparison = !clientFilter && allClients.length > 1;
+  const totals = aggFn(byMonth, windowMonths);
+  const prevTotals = aggFn(byMonth, prevWindow);
+  const showComparison = !clientFilter && clients.length > 1;
 
   return (
     <section className="space-y-8">
@@ -117,10 +150,12 @@ export default async function DashboardPage({
           client={clientFilter}
           period={period}
           month={month}
+          profile={profile}
+          showProfileToggle={showProfileToggle}
         />
       </div>
 
-      {allClients.length === 0 ? (
+      {!anyClients ? (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-10 text-center">
           <p className="text-sm text-[var(--fg-muted)]">
             Todavía no tienes clientes. Agrega el primero para empezar a cargar métricas y generar
@@ -130,6 +165,10 @@ export default async function DashboardPage({
             Agregar cliente
           </Link>
         </div>
+      ) : allClients.length === 0 ? (
+        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--fg-muted)]">
+          No tienes clientes de tipo {profile === 'organic' ? 'orgánico' : 'ads'}.
+        </p>
       ) : (
         <>
           {/* Report of the month — per selected client */}
@@ -172,7 +211,7 @@ export default async function DashboardPage({
 
           {/* Headline KPIs for the window */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {KPI_METRICS.map((key) => (
+            {m.kpi.map((key) => (
               <KpiCard key={key} metricKey={key} value={totals[key]} previous={prevTotals[key]} />
             ))}
           </div>
@@ -184,7 +223,7 @@ export default async function DashboardPage({
                 Comparativa entre clientes · {PERIOD_LABEL[period]}
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
-                {CHART_METRICS.map((key) => (
+                {m.chart.map((key) => (
                   <div
                     key={key}
                     className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
@@ -194,7 +233,7 @@ export default async function DashboardPage({
                       metricKey={key}
                       data={clients.map((cs) => ({
                         name: cs.clientName,
-                        value: aggregateKpis(cs.byMonth, windowMonths)[key],
+                        value: aggFn(cs.byMonth, windowMonths)[key],
                       }))}
                     />
                   </div>
@@ -209,7 +248,7 @@ export default async function DashboardPage({
               Tendencia · últimos {trendMonths.length} meses
             </h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {CHART_METRICS.map((key) => (
+              {m.chart.map((key) => (
                 <div
                   key={key}
                   className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
@@ -227,7 +266,7 @@ export default async function DashboardPage({
                       labels={trendMonths.map(shortMonthLabel)}
                       series={clients.map((cs) => ({
                         name: cs.clientName,
-                        values: trendMonths.map((m) => cs.byMonth[m]?.[key] ?? 0),
+                        values: trendMonths.map((mk) => cs.byMonth[mk]?.[key] ?? 0),
                       }))}
                       height={180}
                     />
@@ -251,18 +290,23 @@ export default async function DashboardPage({
                 Por cliente
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                {clients.map((cs) => (
-                  <ClientOverviewCard
-                    key={cs.clientId}
-                    orgSlug={params.orgSlug}
-                    month={month}
-                    client={{ id: cs.clientId, name: cs.clientName, platform: cs.clientPlatform }}
-                    kpis={aggregateKpis(cs.byMonth, windowMonths)}
-                    previous={aggregateKpis(cs.byMonth, prevWindow)}
-                    series={metricSeries(cs.byMonth, trendMonths, 'impressions')}
-                    hasData={hasData(aggregateKpis(cs.byMonth, windowMonths))}
-                  />
-                ))}
+                {clients.map((cs) => {
+                  const cardKpis = aggFn(cs.byMonth, windowMonths);
+                  return (
+                    <ClientOverviewCard
+                      key={cs.clientId}
+                      orgSlug={params.orgSlug}
+                      month={month}
+                      client={{ id: cs.clientId, name: cs.clientName, platform: cs.clientPlatform }}
+                      kpis={cardKpis}
+                      previous={aggFn(cs.byMonth, prevWindow)}
+                      cardMetrics={m.card}
+                      sparklineMetric={m.spark}
+                      series={metricSeries(cs.byMonth, trendMonths, m.spark)}
+                      hasData={hasDataFor(profile, cardKpis)}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}

@@ -15,17 +15,27 @@ import {
   monthLabel,
   monthsEndingAt,
   previousMonth,
+  type ReportProfile,
 } from '@/lib/metrics';
 import { getClient } from '@/server/queries/clients';
 import { getAccessibleOrg } from '@/server/queries/orgs';
-import { orgKpisByMonth } from '@/server/queries/reports';
+import { organicKpisByMonth, orgKpisByMonth } from '@/server/queries/reports';
 
 const FIELD =
   'rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-base text-[var(--fg)] outline-none focus:border-[var(--fg-muted)]';
 
-const KPI_METRICS: MetricKey[] = ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'roas'];
-const CHART_METRICS: MetricKey[] = ['impressions', 'clicks', 'spend', 'ctr', 'conversions', 'roas'];
-const TABLE_METRICS: MetricKey[] = ['impressions', 'clicks', 'ctr', 'spend', 'cpl', 'roas'];
+const METRICS_BY_PROFILE: Record<'ads' | 'organic', { kpi: MetricKey[]; chart: MetricKey[]; table: MetricKey[] }> = {
+  ads: {
+    kpi: ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'roas'],
+    chart: ['impressions', 'clicks', 'spend', 'ctr', 'conversions', 'roas'],
+    table: ['impressions', 'clicks', 'ctr', 'spend', 'cpl', 'roas'],
+  },
+  organic: {
+    kpi: ['followers_end', 'follower_growth', 'follower_growth_rate', 'reach', 'interactions', 'engagement_rate'],
+    chart: ['followers_end', 'reach', 'interactions', 'engagement_rate', 'profile_visits', 'video_views'],
+    table: ['followers_end', 'follower_growth', 'reach', 'interactions', 'engagement_rate'],
+  },
+};
 const HISTORY_MONTHS = 12;
 
 export default async function ClientDetailPage({
@@ -44,20 +54,23 @@ export default async function ClientDetailPage({
   const client = await getClient(access.org.id, params.id);
   if (!client) notFound();
 
+  const profile: 'ads' | 'organic' =
+    (client.reportProfile as ReportProfile) === 'organic' ? 'organic' : 'ads';
+  const { kpi: KPI_METRICS, chart: CHART_METRICS, table: TABLE_METRICS } = METRICS_BY_PROFILE[profile];
+
   const month = currentMonth();
   const prevMonth = previousMonth(month);
   const months = monthsEndingAt(month, HISTORY_MONTHS);
-  const byMonth = await orgKpisByMonth(access.org.id, [client.id], months);
+  const byMonth =
+    profile === 'organic'
+      ? await organicKpisByMonth(access.org.id, client.id, months)
+      : await orgKpisByMonth(access.org.id, [client.id], months);
 
   const tableRows = [...months].reverse().map((m) => ({ month: m, kpis: byMonth[m] }));
-  const anyData = tableRows.some(
-    (r) =>
-      r.kpis.impressions +
-        r.kpis.clicks +
-        r.kpis.spend +
-        r.kpis.conversions +
-        r.kpis.conversion_value >
-      0,
+  const anyData = tableRows.some((r) =>
+    profile === 'organic'
+      ? r.kpis.followers_end + r.kpis.reach + r.kpis.interactions + r.kpis.impressions > 0
+      : r.kpis.impressions + r.kpis.clicks + r.kpis.spend + r.kpis.conversions + r.kpis.conversion_value > 0,
   );
 
   const csvRows = tableRows.map((r) => ({

@@ -1,23 +1,8 @@
 import Link from 'next/link';
 import { MetricDelta } from '@/components/app/metric-delta';
 import { Sparkline, type TrendPoint } from '@/components/app/trend-chart';
-import { formatMetric, type Kpis, type MetricKey } from '@/lib/metrics';
-
-const PLATFORM_LABELS: Record<string, string> = {
-  meta: 'Meta',
-  google_ads: 'Google Ads',
-  tiktok: 'TikTok',
-  instagram: 'Instagram',
-};
-
-/** The four headline metrics on a client card. */
-const CARD_METRICS: MetricKey[] = ['impressions', 'spend', 'ctr', 'roas'];
-const SHORT_LABELS: Record<string, string> = {
-  impressions: 'Impresiones',
-  spend: 'Inversión',
-  ctr: 'CTR',
-  roas: 'ROAS',
-};
+import { PLATFORM_LABELS } from '@/lib/client-profile';
+import { formatMetric, type Kpis, METRIC_LABELS, type MetricKey } from '@/lib/metrics';
 
 type Props = {
   orgSlug: string;
@@ -26,11 +11,14 @@ type Props = {
   kpis: Kpis;
   previous: Kpis;
   hasData: boolean;
-  /** Impressions across the dashboard's window, for the card sparkline. */
+  /** The four headline metrics to show — ads or organic, from the page. */
+  cardMetrics: MetricKey[];
+  /** The metric the card sparkline plots, over the dashboard's window. */
+  sparklineMetric: MetricKey;
   series?: TrendPoint[];
 };
 
-/** One client's month at a glance: headline KPIs with deltas + next actions. */
+/** One client's period at a glance: headline KPIs with deltas + next actions. */
 export function ClientOverviewCard({
   orgSlug,
   month,
@@ -38,6 +26,8 @@ export function ClientOverviewCard({
   kpis,
   previous,
   hasData,
+  cardMetrics,
+  sparklineMetric,
   series,
 }: Props) {
   const detailHref = `/${orgSlug}/clients/${client.id}`;
@@ -62,10 +52,10 @@ export function ClientOverviewCard({
       {hasData ? (
         <>
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-            {CARD_METRICS.map((key) => (
+            {cardMetrics.map((key) => (
               <div key={key}>
                 <dt className="text-[11px] uppercase tracking-wide text-[var(--fg-muted)]">
-                  {SHORT_LABELS[key]}
+                  {METRIC_LABELS[key]}
                 </dt>
                 <dd className="mt-0.5 flex items-baseline gap-2">
                   <span className="text-lg font-bold text-[var(--fg)]">
@@ -78,14 +68,12 @@ export function ClientOverviewCard({
           </dl>
           {series && series.length > 1 ? (
             <div className="mt-3">
-              <Sparkline data={series} metricKey="impressions" height={36} />
+              <Sparkline data={series} metricKey={sparklineMetric} height={36} />
             </div>
           ) : null}
         </>
       ) : (
-        <p className="mt-4 flex-1 text-sm text-[var(--fg-muted)]">
-          Sin datos en este período.
-        </p>
+        <p className="mt-4 flex-1 text-sm text-[var(--fg-muted)]">Sin datos en este período.</p>
       )}
 
       <div className="mt-5 flex gap-2">
