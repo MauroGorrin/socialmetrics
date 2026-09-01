@@ -29,7 +29,7 @@ export async function GET(
 
 const createSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  platform: z.enum(['meta', 'google_ads', 'tiktok', 'instagram']),
+  platform: z.enum(['meta', 'google_ads', 'tiktok', 'instagram']).optional(),
 });
 
 export async function POST(

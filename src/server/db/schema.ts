@@ -94,7 +94,8 @@ export const clients = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    platform: text('platform').notNull(),
+    /** Optional platform tag — set later in client settings, not at creation. */
+    platform: text('platform'),
     platformAccountId: text('platform_account_id'),
     /** Which report template this client's monthly report uses. */
     reportProfile: text('report_profile').notNull().default('ads'),

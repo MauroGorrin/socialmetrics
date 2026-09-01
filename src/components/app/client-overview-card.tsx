@@ -7,7 +7,7 @@ import { formatMetric, type Kpis, METRIC_LABELS, type MetricKey } from '@/lib/me
 type Props = {
   orgSlug: string;
   month: string;
-  client: { id: string; name: string; platform: string };
+  client: { id: string; name: string; platform: string | null };
   kpis: Kpis;
   previous: Kpis;
   hasData: boolean;
@@ -40,9 +40,11 @@ export function ClientOverviewCard({
           <Link href={detailHref} className="font-semibold text-[var(--fg)] hover:underline">
             {client.name}
           </Link>
-          <p className="text-xs text-[var(--text-tertiary)]">
-            {PLATFORM_LABELS[client.platform] ?? client.platform}
-          </p>
+          {client.platform ? (
+            <p className="text-xs text-[var(--text-tertiary)]">
+              {PLATFORM_LABELS[client.platform] ?? client.platform}
+            </p>
+          ) : null}
         </div>
         <Link
           href={detailHref}

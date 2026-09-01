@@ -19,13 +19,14 @@ export type NewClient = {
   orgId: string;
   createdBy: string;
   name: string;
-  platform: Platform;
+  /** Optional — a client is created with just a name + profile. */
+  platform?: Platform | null;
   reportProfile?: ReportProfile;
 };
 
 export type ClientPatch = {
   name?: string;
-  platform?: Platform;
+  platform?: Platform | null;
   platformAccountId?: string | null;
   reportProfile?: ReportProfile;
 };
@@ -37,7 +38,7 @@ export async function createClient(input: NewClient): Promise<Client> {
       orgId: input.orgId,
       createdBy: input.createdBy,
       name: input.name,
-      platform: input.platform,
+      platform: input.platform ?? null,
       reportProfile: input.reportProfile ?? 'ads',
     })
     .returning();

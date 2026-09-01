@@ -108,7 +108,7 @@ test.describe('onboarding wizard', () => {
     // Step 2 — client.
     await expect(page).toHaveURL(/\/onboarding\/step-2$/);
     await page.fill('input[name="clientName"]', 'Cliente Onboarding');
-    await page.selectOption('select[name="clientPlatform"]', 'meta');
+    await page.selectOption('select[name="clientProfile"]', 'ads');
     await page.getByRole('button', { name: 'Siguiente' }).click();
     await expect(page).toHaveURL(/\/onboarding\/step-3$/);
 
