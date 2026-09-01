@@ -40,7 +40,7 @@ export function TrendChart({
   return (
     <div className="w-full" style={{ height }}>
       {empty ? (
-        <div className="flex h-full items-center justify-center text-xs text-[var(--fg-muted)]">
+        <div className="flex h-full items-center justify-center text-xs text-[var(--text-secondary)]">
           Sin datos en este período
         </div>
       ) : (
@@ -55,14 +55,14 @@ export function TrendChart({
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: 'var(--fg-muted)', fontSize: 10 }}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
               interval="preserveStartEnd"
             />
             <YAxis
               width={44}
-              tick={{ fill: 'var(--fg-muted)', fontSize: 10 }}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(value) => formatMetric(metricKey, Number(value))}
@@ -74,8 +74,8 @@ export function TrendChart({
                 const point = payload[0];
                 const label = (point.payload as TrendPoint).label;
                 return (
-                  <div className="rounded border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-xs shadow-sm">
-                    <p className="text-[var(--fg-muted)]">{label}</p>
+                  <div className="rounded border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs shadow-sm">
+                    <p className="text-[var(--text-secondary)]">{label}</p>
                     <p className="font-semibold text-[var(--fg)]">
                       {formatMetric(metricKey, Number(point.value ?? 0))}
                     </p>
@@ -122,7 +122,7 @@ export function MultiTrendChart({
   return (
     <div className="w-full" style={{ height }}>
       {empty ? (
-        <div className="flex h-full items-center justify-center text-xs text-[var(--fg-muted)]">
+        <div className="flex h-full items-center justify-center text-xs text-[var(--text-secondary)]">
           Sin datos en este período
         </div>
       ) : (
@@ -131,14 +131,14 @@ export function MultiTrendChart({
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: 'var(--fg-muted)', fontSize: 10 }}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
               interval="preserveStartEnd"
             />
             <YAxis
               width={44}
-              tick={{ fill: 'var(--fg-muted)', fontSize: 10 }}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(value) => formatMetric(metricKey, Number(value))}
@@ -148,8 +148,8 @@ export function MultiTrendChart({
               content={({ active, payload, label }) => {
                 if (!active || !payload || payload.length === 0) return null;
                 return (
-                  <div className="rounded border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-xs shadow-sm">
-                    <p className="mb-1 text-[var(--fg-muted)]">{String(label)}</p>
+                  <div className="rounded border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs shadow-sm">
+                    <p className="mb-1 text-[var(--text-secondary)]">{String(label)}</p>
                     {payload.map((entry) => (
                       <p key={String(entry.dataKey)} className="flex justify-between gap-3">
                         <span style={{ color: entry.color }}>{String(entry.dataKey)}</span>
