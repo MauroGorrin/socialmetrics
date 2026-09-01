@@ -34,17 +34,20 @@ export function ClientOverviewCard({
   const loadHref = `/${orgSlug}/metrics?client=${client.id}&month=${month}`;
 
   return (
-    <article className="flex flex-col rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+    <article className="flex flex-col rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <Link href={detailHref} className="font-semibold text-[var(--fg)] hover:underline">
             {client.name}
           </Link>
-          <p className="text-xs text-[var(--fg-muted)]">
+          <p className="text-xs text-[var(--text-tertiary)]">
             {PLATFORM_LABELS[client.platform] ?? client.platform}
           </p>
         </div>
-        <Link href={detailHref} className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg)]">
+        <Link
+          href={detailHref}
+          className="text-xs text-[var(--text-tertiary)] hover:text-[var(--fg)]"
+        >
           Ver detalle →
         </Link>
       </div>
@@ -54,11 +57,11 @@ export function ClientOverviewCard({
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
             {cardMetrics.map((key) => (
               <div key={key}>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--fg-muted)]">
+                <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                   {METRIC_LABELS[key]}
                 </dt>
                 <dd className="mt-0.5 flex items-baseline gap-2">
-                  <span className="text-lg font-bold text-[var(--fg)]">
+                  <span className="font-mono text-lg font-bold text-[var(--fg)]">
                     {formatMetric(key, kpis[key])}
                   </span>
                   <MetricDelta metricKey={key} current={kpis[key]} previous={previous[key]} />
@@ -73,7 +76,9 @@ export function ClientOverviewCard({
           ) : null}
         </>
       ) : (
-        <p className="mt-4 flex-1 text-sm text-[var(--fg-muted)]">Sin datos en este período.</p>
+        <p className="mt-4 flex-1 text-sm text-[var(--text-secondary)]">
+          Sin datos en este período.
+        </p>
       )}
 
       <div className="mt-5 flex gap-2">
@@ -81,8 +86,8 @@ export function ClientOverviewCard({
           href={loadHref}
           className={
             hasData
-              ? 'rounded border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--fg)] transition-opacity duration-150 hover:opacity-70'
-              : 'rounded bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90'
+              ? 'rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--fg)] transition-opacity duration-150 hover:opacity-70'
+              : 'rounded-[var(--radius-md)] bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90'
           }
         >
           {hasData ? 'Editar datos' : 'Cargar datos'}

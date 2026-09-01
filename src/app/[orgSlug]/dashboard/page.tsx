@@ -7,11 +7,18 @@ import { ComparisonBarChart } from '@/components/app/comparison-bar-chart';
 import { DashboardControls } from '@/components/app/dashboard-controls';
 import { GroupedStatCard } from '@/components/app/grouped-stat-card';
 import { MetricDelta } from '@/components/app/metric-delta';
+import { MetricToggleChart } from '@/components/app/metric-toggle-chart';
 import { RangeToggle } from '@/components/app/range-toggle';
 import { StatCard } from '@/components/app/stat-card';
 import { MultiTrendChart, TrendChart } from '@/components/app/trend-chart';
 import { getCurrentUser } from '@/lib/auth';
-import { pickGroupedCard, pickStatCards, rangeToMonths } from '@/lib/dashboard-view';
+import {
+  pickChartChips,
+  pickGroupedCard,
+  pickStatCards,
+  rangeToMonths,
+  resolveChartMetric,
+} from '@/lib/dashboard-view';
 import {
   addKpis,
   addOrganicKpis,
@@ -86,7 +93,13 @@ export default async function DashboardPage({
   searchParams,
 }: {
   params: { orgSlug: string };
-  searchParams: { month?: string; period?: string; client?: string; profile?: string };
+  searchParams: {
+    month?: string;
+    period?: string;
+    client?: string;
+    profile?: string;
+    chart_metric?: string;
+  };
 }) {
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/signin?redirect=/${params.orgSlug}/dashboard`);
@@ -149,6 +162,8 @@ export default async function DashboardPage({
 
   const seriesFor = (key: MetricKey) => metricSeries(byMonth, trendMonths, key).map((p) => p.value);
   const grouped = pickGroupedCard(profile);
+  const chartChips = pickChartChips(profile);
+  const chartMetric = resolveChartMetric(searchParams.chart_metric, profile);
 
   return (
     <section className="space-y-8">
@@ -282,6 +297,23 @@ export default async function DashboardPage({
               }))}
             />
           </div>
+
+          {/* Hero chart — metric toggle */}
+          <MetricToggleChart
+            chips={chartChips}
+            active={chartMetric}
+            data={metricSeries(byMonth, windowMonths, chartMetric)}
+            headline={{
+              value: formatMetric(chartMetric, totals[chartMetric]),
+              delta: (
+                <MetricDelta
+                  metricKey={chartMetric}
+                  current={totals[chartMetric]}
+                  previous={prevTotals[chartMetric]}
+                />
+              ),
+            }}
+          />
 
           {/* Client comparison */}
           {showComparison ? (
