@@ -2,11 +2,23 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { generateReportAction } from '@/app/[orgSlug]/reports/actions';
 import { ClientOverviewCard } from '@/components/app/client-overview-card';
+import { ClientSwitcher } from '@/components/app/client-switcher';
 import { ComparisonBarChart } from '@/components/app/comparison-bar-chart';
 import { DashboardControls } from '@/components/app/dashboard-controls';
-import { HeadlineKpis } from '@/components/app/headline-kpis';
+import { GroupedStatCard } from '@/components/app/grouped-stat-card';
+import { MetricDelta } from '@/components/app/metric-delta';
+import { MetricToggleChart } from '@/components/app/metric-toggle-chart';
+import { RangeToggle } from '@/components/app/range-toggle';
+import { StatCard } from '@/components/app/stat-card';
 import { MultiTrendChart, TrendChart } from '@/components/app/trend-chart';
 import { getCurrentUser } from '@/lib/auth';
+import {
+  pickChartChips,
+  pickGroupedCard,
+  pickStatCards,
+  rangeToMonths,
+  resolveChartMetric,
+} from '@/lib/dashboard-view';
 import {
   addKpis,
   addOrganicKpis,
@@ -14,6 +26,7 @@ import {
   aggregateOrganicKpis,
   currentMonth,
   emptyKpis,
+  formatMetric,
   type Kpis,
   METRIC_LABELS,
   type MetricKey,
@@ -31,27 +44,25 @@ import {
 } from '@/server/queries/reports';
 
 const GHOST_BTN =
-  'rounded border border-[var(--border)] px-4 py-2 text-sm text-[var(--fg)] transition-opacity duration-150 hover:opacity-70';
+  'rounded-[var(--radius-md)] border border-[var(--border)] px-4 py-2 text-sm text-[var(--fg)] transition-opacity duration-150 hover:opacity-70';
 const PRIMARY_BTN =
-  'rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90';
+  'rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90';
 
-const METRICS: Record<ReportProfile, { kpi: MetricKey[]; chart: MetricKey[]; card: MetricKey[]; spark: MetricKey }> = {
+const METRICS: Record<ReportProfile, { chart: MetricKey[]; card: MetricKey[]; spark: MetricKey }> = {
   ads: {
-    kpi: ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'roas'],
     chart: ['impressions', 'clicks', 'spend', 'roas'],
     card: ['impressions', 'spend', 'ctr', 'roas'],
     spark: 'impressions',
   },
   organic: {
-    kpi: ['followers_end', 'follower_growth', 'follower_growth_rate', 'reach', 'interactions', 'engagement_rate'],
     chart: ['followers_end', 'reach', 'interactions', 'engagement_rate'],
     card: ['followers_end', 'follower_growth', 'engagement_rate', 'reach'],
     spark: 'followers_end',
   },
-  mixed: { kpi: [], chart: [], card: [], spark: 'impressions' },
+  mixed: { chart: [], card: [], spark: 'impressions' },
 };
 
-/** The one or two metrics that matter most for each profile — featured on the panel. */
+/** The one or two metrics shown inline next to the client switcher. */
 const HERO: Record<'ads' | 'organic', MetricKey[]> = {
   ads: ['roas', 'conversions'],
   organic: ['follower_growth', 'engagement_rate'],
@@ -82,7 +93,13 @@ export default async function DashboardPage({
   searchParams,
 }: {
   params: { orgSlug: string };
-  searchParams: { month?: string; period?: string; client?: string; profile?: string };
+  searchParams: {
+    month?: string;
+    period?: string;
+    client?: string;
+    profile?: string;
+    chart_metric?: string;
+  };
 }) {
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/signin?redirect=/${params.orgSlug}/dashboard`);
@@ -103,10 +120,11 @@ export default async function DashboardPage({
   const canGenerate = access.role === 'owner' || access.role === 'admin';
 
   const fetchMonths = monthsEndingAt(month, Math.max(period * 2, 6));
-  const trendMonths = monthsEndingAt(month, Math.max(period, 6));
-  const doubleWindow = monthsEndingAt(month, period * 2);
-  const prevWindow = doubleWindow.slice(0, period);
-  const windowMonths = doubleWindow.slice(period);
+  const {
+    window: windowMonths,
+    previous: prevWindow,
+    trend: trendMonths,
+  } = rangeToMonths(period, month);
 
   const [adsSeries, organicSeries, monthReports] = await Promise.all([
     clientMonthlySeries(orgId, fetchMonths),
@@ -142,28 +160,57 @@ export default async function DashboardPage({
   const prevTotals = aggFn(byMonth, prevWindow);
   const showComparison = !clientFilter && clients.length > 1;
 
+  const seriesFor = (key: MetricKey) => metricSeries(byMonth, trendMonths, key).map((p) => p.value);
+  const grouped = pickGroupedCard(profile);
+  const chartChips = pickChartChips(profile);
+  const chartMetric = resolveChartMetric(searchParams.chart_metric, profile);
+
   return (
     <section className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--fg)]">Panel</h1>
-          <p className="text-sm text-[var(--fg-muted)]">
-            {activeClientName} · {PERIOD_LABEL[period]} · hasta {monthLabel(month)}
-          </p>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold text-[var(--fg)]">Panel</h1>
+        <p className="text-sm text-[var(--text-secondary)]">
+          Rendimiento de tus clientes · {PERIOD_LABEL[period]} · hasta {monthLabel(month)}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+        <div className="flex flex-wrap items-center gap-5">
+          <ClientSwitcher
+            clients={allClients.map((c) => ({
+              id: c.clientId,
+              name: c.clientName,
+              platform: c.clientPlatform,
+            }))}
+            active={clientFilter}
+          />
+          {anyClients && allClients.length > 0 ? (
+            <div className="flex items-center gap-5">
+              {HERO[profile].map((key) => (
+                <div key={key}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-ghost)]">
+                    {METRIC_LABELS[key]}
+                  </p>
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <span className="font-mono text-sm font-bold text-[var(--fg)]">
+                      {formatMetric(key, totals[key])}
+                    </span>
+                    <MetricDelta metricKey={key} current={totals[key]} previous={prevTotals[key]} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
-        <DashboardControls
-          clients={allClients.map((c) => ({ id: c.clientId, name: c.clientName }))}
-          client={clientFilter}
-          period={period}
-          month={month}
-          profile={profile}
-          showProfileToggle={showProfileToggle}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <DashboardControls month={month} profile={profile} showProfileToggle={showProfileToggle} />
+          <RangeToggle period={period} />
+        </div>
       </div>
 
       {!anyClients ? (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-10 text-center">
-          <p className="text-sm text-[var(--fg-muted)]">
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] p-10 text-center shadow-[var(--shadow-sm)]">
+          <p className="text-sm text-[var(--text-secondary)]">
             Todavía no tienes clientes. Agrega el primero para empezar a cargar métricas y generar
             reportes.
           </p>
@@ -172,19 +219,19 @@ export default async function DashboardPage({
           </Link>
         </div>
       ) : allClients.length === 0 ? (
-        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--fg-muted)]">
+        <p className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--text-secondary)]">
           No tienes clientes de tipo {profile === 'organic' ? 'orgánico' : 'ads'}.
         </p>
       ) : (
         <>
           {/* Report of the month — per selected client */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-[var(--shadow-sm)]">
             <div className="text-sm">
               <span className="font-medium text-[var(--fg)]">
                 Reporte de {monthLabel(month)}
                 {clientFilter ? ` · ${activeClientName}` : ''}
               </span>
-              <span className="ml-2 text-[var(--fg-muted)]">
+              <span className="ml-2 text-[var(--text-secondary)]">
                 {clientFilter
                   ? report
                     ? (REPORT_STATUS[report.status] ?? report.status)
@@ -215,20 +262,70 @@ export default async function DashboardPage({
             </div>
           </div>
 
-          {/* Headline KPIs for the window */}
-          <HeadlineKpis metricKeys={m.kpi} heroKeys={HERO[profile]} totals={totals} previous={prevTotals} />
+          {/* Hero row — stat cards + the grouped card */}
+          <div className="flex flex-wrap items-stretch gap-4">
+            {pickStatCards(profile).map((key) => (
+              <StatCard
+                key={key}
+                label={METRIC_LABELS[key]}
+                value={formatMetric(key, totals[key])}
+                delta={
+                  <MetricDelta metricKey={key} current={totals[key]} previous={prevTotals[key]} />
+                }
+                series={seriesFor(key)}
+              />
+            ))}
+            <GroupedStatCard
+              feature={{
+                label: METRIC_LABELS[grouped.feature],
+                value: formatMetric(grouped.feature, totals[grouped.feature]),
+                delta: (
+                  <MetricDelta
+                    metricKey={grouped.feature}
+                    current={totals[grouped.feature]}
+                    previous={prevTotals[grouped.feature]}
+                  />
+                ),
+                series: seriesFor(grouped.feature),
+              }}
+              parts={grouped.parts.map((key) => ({
+                label: METRIC_LABELS[key],
+                value: formatMetric(key, totals[key]),
+                delta: (
+                  <MetricDelta metricKey={key} current={totals[key]} previous={prevTotals[key]} />
+                ),
+              }))}
+            />
+          </div>
+
+          {/* Hero chart — metric toggle */}
+          <MetricToggleChart
+            chips={chartChips}
+            active={chartMetric}
+            data={metricSeries(byMonth, windowMonths, chartMetric)}
+            headline={{
+              value: formatMetric(chartMetric, totals[chartMetric]),
+              delta: (
+                <MetricDelta
+                  metricKey={chartMetric}
+                  current={totals[chartMetric]}
+                  previous={prevTotals[chartMetric]}
+                />
+              ),
+            }}
+          />
 
           {/* Client comparison */}
           {showComparison ? (
             <div>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                 Comparativa entre clientes · {PERIOD_LABEL[period]}
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {m.chart.map((key) => (
                   <div
                     key={key}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+                    className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)]"
                   >
                     <p className="mb-2 text-sm font-medium text-[var(--fg)]">{METRIC_LABELS[key]}</p>
                     <ComparisonBarChart
@@ -246,14 +343,14 @@ export default async function DashboardPage({
 
           {/* Trends */}
           <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
               Tendencia · últimos {trendMonths.length} meses
             </h2>
             <div className="grid gap-4 md:grid-cols-2">
               {m.chart.map((key) => (
                 <div
                   key={key}
-                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+                  className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)]"
                 >
                   <p className="mb-2 text-sm font-medium text-[var(--fg)]">{METRIC_LABELS[key]}</p>
                   {clientFilter || singleClient ? (
@@ -288,7 +385,7 @@ export default async function DashboardPage({
             </Link>
           ) : (
             <div>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                 Por cliente
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">

@@ -4,9 +4,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { expect, test } from '@playwright/test';
 
 /**
- * Dashboard — the per-client overview: a card per client showing the selected
- * month's KPIs (with a delta once there's a prior month), the month picker, and
- * the report-of-the-month row.
+ * Dashboard — the BrightBean-style overview: a card per client, the hero row,
+ * the metric-toggle hero chart, the client-switcher / range pill-group, and the
+ * report-of-the-month row.
  */
 
 function loadEnvLocal(): void {
@@ -94,7 +94,7 @@ test.describe('dashboard overview', () => {
     }
   });
 
-  test('client cards, no-data state, month picker, and report row', async ({ page }) => {
+  test('client cards, hero chart, range toggle, and report row', async ({ page }) => {
     await page.goto('/auth/signin');
     await page.fill('input[name="email"]', userEmail);
     await page.fill('input[name="password"]', PASSWORD);
@@ -107,6 +107,13 @@ test.describe('dashboard overview', () => {
     await expect(cards).toHaveCount(2);
     await expect(page.getByRole('link', { name: 'Cliente Uno' })).toBeVisible();
     await expect(page.getByText('Sin datos en este período.').first()).toBeVisible();
+
+    // The hero chart renders with the profile's metric chips.
+    await expect(page.getByRole('button', { name: 'Impresiones' })).toBeVisible();
+
+    // An unknown chart_metric falls back to the default without erroring.
+    await page.goto(`/${slug}/dashboard?month=${MONTH}&period=1&chart_metric=garbage`);
+    await expect(page.getByRole('button', { name: 'Impresiones' })).toBeVisible();
 
     // With a client selected, the report row offers "Generar reporte".
     await page.goto(`/${slug}/dashboard?month=${MONTH}&period=1&client=${clientUnoId}`);
@@ -129,8 +136,12 @@ test.describe('dashboard overview', () => {
     // The client comparison shows a bar per client.
     await expect(page.getByText('Comparativa entre clientes · el mes')).toBeVisible();
 
-    // The period selector moves the view.
-    await page.getByRole('button', { name: '12 meses' }).click();
+    // Clicking a metric chip sets ?chart_metric=.
+    await page.getByRole('button', { name: 'Clics' }).click();
+    await page.waitForURL(/chart_metric=clicks/);
+
+    // The range pill-group moves the view.
+    await page.getByRole('button', { name: '12M' }).click();
     await page.waitForURL(/period=12/);
   });
 });

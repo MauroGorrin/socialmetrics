@@ -29,6 +29,7 @@
     "node_modules",
     ".next",
     "blueprints",
+    "_Contexto",
     "the-architect",
     "scrapling-env",
     "tests"

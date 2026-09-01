@@ -2,10 +2,17 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { deleteClientAction, updateClientAction } from '@/app/[orgSlug]/clients/actions';
 import { ExportCsvButton } from '@/components/app/export-csv-button';
-import { KpiCard } from '@/components/app/kpi-card';
-import { TrendChart } from '@/components/app/trend-chart';
+import { MetricDelta } from '@/components/app/metric-delta';
+import { MetricToggleChart } from '@/components/app/metric-toggle-chart';
+import { StatCard } from '@/components/app/stat-card';
 import { getCurrentUser } from '@/lib/auth';
-import { PLATFORM_LABELS, PLATFORM_OPTIONS, PROFILE_LABELS, REPORT_PROFILES } from '@/lib/client-profile';
+import {
+  PLATFORM_LABELS,
+  PLATFORM_OPTIONS,
+  PROFILE_LABELS,
+  REPORT_PROFILES,
+} from '@/lib/client-profile';
+import { pickChartChips, resolveChartMetric } from '@/lib/dashboard-view';
 import {
   currentMonth,
   formatMetric,
@@ -22,17 +29,15 @@ import { getAccessibleOrg } from '@/server/queries/orgs';
 import { organicKpisByMonth, orgKpisByMonth } from '@/server/queries/reports';
 
 const FIELD =
-  'rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-base text-[var(--fg)] outline-none focus:border-[var(--fg-muted)]';
+  'rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-base text-[var(--fg)] outline-none focus:border-[var(--primary)]';
 
-const METRICS_BY_PROFILE: Record<'ads' | 'organic', { kpi: MetricKey[]; chart: MetricKey[]; table: MetricKey[] }> = {
+const METRICS_BY_PROFILE: Record<'ads' | 'organic', { kpi: MetricKey[]; table: MetricKey[] }> = {
   ads: {
     kpi: ['impressions', 'clicks', 'ctr', 'spend', 'conversions', 'roas'],
-    chart: ['impressions', 'clicks', 'spend', 'ctr', 'conversions', 'roas'],
     table: ['impressions', 'clicks', 'ctr', 'spend', 'cpl', 'roas'],
   },
   organic: {
     kpi: ['followers_end', 'follower_growth', 'follower_growth_rate', 'reach', 'interactions', 'engagement_rate'],
-    chart: ['followers_end', 'reach', 'interactions', 'engagement_rate', 'profile_visits', 'video_views'],
     table: ['followers_end', 'follower_growth', 'reach', 'interactions', 'engagement_rate'],
   },
 };
@@ -43,7 +48,7 @@ export default async function ClientDetailPage({
   searchParams,
 }: {
   params: { orgSlug: string; id: string };
-  searchParams: { saved?: string; error?: string };
+  searchParams: { saved?: string; error?: string; chart_metric?: string };
 }) {
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/signin?redirect=/${params.orgSlug}/clients/${params.id}`);
@@ -56,7 +61,7 @@ export default async function ClientDetailPage({
 
   const profile: 'ads' | 'organic' =
     (client.reportProfile as ReportProfile) === 'organic' ? 'organic' : 'ads';
-  const { kpi: KPI_METRICS, chart: CHART_METRICS, table: TABLE_METRICS } = METRICS_BY_PROFILE[profile];
+  const { kpi: KPI_METRICS, table: TABLE_METRICS } = METRICS_BY_PROFILE[profile];
 
   const month = currentMonth();
   const prevMonth = previousMonth(month);
@@ -78,19 +83,24 @@ export default async function ClientDetailPage({
     ...Object.fromEntries(TABLE_METRICS.map((key) => [METRIC_LABELS[key], r.kpis[key]])),
   }));
 
+  const chartChips = pickChartChips(profile);
+  const chartMetric = resolveChartMetric(searchParams.chart_metric, profile);
+  const cur = (key: MetricKey) => byMonth[month]?.[key] ?? 0;
+  const prev = (key: MetricKey) => byMonth[prevMonth]?.[key] ?? 0;
+
   return (
     <section className="mx-auto max-w-4xl space-y-8">
       <div>
         <Link
           href={`/${params.orgSlug}/clients`}
-          className="text-sm text-[var(--fg-muted)] hover:text-[var(--fg)]"
+          className="text-sm text-[var(--text-secondary)] hover:text-[var(--fg)]"
         >
           ← Volver a clientes
         </Link>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-[var(--fg)]">{client.name}</h1>
-            <p className="text-sm text-[var(--fg-muted)]">
+            <p className="text-sm text-[var(--text-secondary)]">
               {PLATFORM_LABELS[client.platform] ?? client.platform} ·{' '}
               {PROFILE_LABELS[client.reportProfile as keyof typeof PROFILE_LABELS] ??
                 client.reportProfile}
@@ -98,7 +108,7 @@ export default async function ClientDetailPage({
           </div>
           <Link
             href={`/${params.orgSlug}/metrics?client=${client.id}&month=${month}`}
-            className="rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90"
+            className="rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90"
           >
             Cargar métricas
           </Link>
@@ -106,7 +116,7 @@ export default async function ClientDetailPage({
       </div>
 
       {searchParams.saved ? (
-        <p className="rounded border border-[var(--border)] bg-[var(--surface)] p-3 text-sm text-[var(--fg)]">
+        <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-3 text-sm text-[var(--fg)]">
           Cambios guardados.
         </p>
       ) : null}
@@ -123,37 +133,37 @@ export default async function ClientDetailPage({
 
       {anyData ? (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="flex flex-wrap items-stretch gap-4">
             {KPI_METRICS.map((key) => (
-              <KpiCard
+              <StatCard
                 key={key}
-                metricKey={key}
-                value={byMonth[month]?.[key] ?? 0}
-                previous={byMonth[prevMonth]?.[key] ?? 0}
+                label={METRIC_LABELS[key]}
+                value={formatMetric(key, cur(key))}
+                delta={<MetricDelta metricKey={key} current={cur(key)} previous={prev(key)} />}
+                series={metricSeries(byMonth, months, key).map((p) => p.value)}
               />
             ))}
           </div>
 
-          <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
-              Tendencia · últimos {HISTORY_MONTHS} meses
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {CHART_METRICS.map((key) => (
-                <div
-                  key={key}
-                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
-                >
-                  <p className="mb-2 text-sm font-medium text-[var(--fg)]">{METRIC_LABELS[key]}</p>
-                  <TrendChart data={metricSeries(byMonth, months, key)} metricKey={key} height={150} />
-                </div>
-              ))}
-            </div>
-          </div>
+          <MetricToggleChart
+            chips={chartChips}
+            active={chartMetric}
+            data={metricSeries(byMonth, months, chartMetric)}
+            headline={{
+              value: formatMetric(chartMetric, cur(chartMetric)),
+              delta: (
+                <MetricDelta
+                  metricKey={chartMetric}
+                  current={cur(chartMetric)}
+                  previous={prev(chartMetric)}
+                />
+              ),
+            }}
+          />
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                 Detalle por mes
               </h2>
               <ExportCsvButton
@@ -161,9 +171,9 @@ export default async function ClientDetailPage({
                 filename={`${client.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-metricas.csv`}
               />
             </div>
-            <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
+            <div className="overflow-x-auto rounded-[var(--radius-xl)] border border-[var(--border)] shadow-[var(--shadow-sm)]">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-[var(--border)] text-[var(--fg-muted)]">
+                <thead className="border-b border-[var(--border)] text-[var(--text-secondary)]">
                   <tr>
                     <th className="px-4 py-2 font-medium">Mes</th>
                     {TABLE_METRICS.map((key) => (
@@ -180,7 +190,10 @@ export default async function ClientDetailPage({
                         {monthLabel(row.month)}
                       </td>
                       {TABLE_METRICS.map((key) => (
-                        <td key={key} className="px-4 py-2 text-right text-[var(--fg)]">
+                        <td
+                          key={key}
+                          className="px-4 py-2 text-right font-mono text-[var(--fg)]"
+                        >
                           {formatMetric(key, row.kpis[key])}
                         </td>
                       ))}
@@ -192,14 +205,14 @@ export default async function ClientDetailPage({
           </div>
         </>
       ) : (
-        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--fg-muted)]">
+        <p className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-sm text-[var(--text-secondary)]">
           Sin métricas cargadas para este cliente todavía.
         </p>
       )}
 
       {/* Client data */}
       <div className="space-y-4 border-t border-[var(--border)] pt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
           Datos del cliente
         </h2>
 
@@ -243,7 +256,7 @@ export default async function ClientDetailPage({
 
           <button
             type="submit"
-            className="self-start rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90"
+            className="self-start rounded-[var(--radius-md)] bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-fg)] transition-opacity duration-150 hover:opacity-90"
           >
             Guardar cambios
           </button>
@@ -254,7 +267,7 @@ export default async function ClientDetailPage({
           <input type="hidden" name="clientId" value={client.id} />
           <button
             type="submit"
-            className="rounded border border-[var(--destructive)] px-4 py-2 text-sm font-medium text-[var(--destructive)] transition-opacity duration-150 hover:opacity-70"
+            className="rounded-[var(--radius-md)] border border-[var(--destructive)] px-4 py-2 text-sm font-medium text-[var(--destructive)] transition-opacity duration-150 hover:opacity-70"
           >
             Eliminar cliente
           </button>

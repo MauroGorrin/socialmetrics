@@ -14,7 +14,7 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       aria-label={isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
       aria-pressed={isDark}
-      className="rounded px-3 py-1.5 text-sm text-[var(--fg)] transition-opacity duration-150 ease-out hover:opacity-70"
+      className="rounded-[var(--radius-full)] border border-[var(--border)] bg-[var(--surface-1)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors duration-150 ease-out hover:border-[var(--border-hover)] hover:text-[var(--fg)]"
     >
       {isDark ? 'Claro' : 'Oscuro'}
     </button>

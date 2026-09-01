@@ -20,7 +20,7 @@ export function ComparisonBarChart({
   return (
     <div className="w-full" style={{ height }}>
       {empty ? (
-        <div className="flex h-full items-center justify-center text-xs text-[var(--fg-muted)]">
+        <div className="flex h-full items-center justify-center text-xs text-[var(--text-secondary)]">
           Sin datos en este período
         </div>
       ) : (
@@ -32,7 +32,7 @@ export function ComparisonBarChart({
           >
             <XAxis
               type="number"
-              tick={{ fill: 'var(--fg-muted)', fontSize: 10 }}
+              tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(value) => formatMetric(metricKey, Number(value))}
@@ -46,13 +46,13 @@ export function ComparisonBarChart({
               axisLine={false}
             />
             <Tooltip
-              cursor={{ fill: 'var(--surface)' }}
+              cursor={{ fill: 'var(--surface-1)' }}
               content={({ active, payload }) => {
                 if (!active || !payload || payload.length === 0) return null;
                 const entry = payload[0];
                 return (
-                  <div className="rounded border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-xs shadow-sm">
-                    <p className="text-[var(--fg-muted)]">
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs shadow-[var(--shadow-md)]">
+                    <p className="text-[var(--text-secondary)]">
                       {String((entry.payload as ClientValue).name)}
                     </p>
                     <p className="font-semibold text-[var(--fg)]">

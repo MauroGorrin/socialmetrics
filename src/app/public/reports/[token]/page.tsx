@@ -27,9 +27,28 @@ export default async function PublicReportPage({ params }: { params: { token: st
   });
 
   return (
-    <main className="mx-auto max-w-3xl p-4 md:p-8">
-      <div className="rounded-lg border border-[var(--border)] bg-white p-6 text-black">
-        <ReportTemplate data={data} />
+    <main className="min-h-[100dvh] bg-[var(--background)] py-8">
+      <div className="mx-auto max-w-3xl px-4">
+        {shared.org.logoUrl ? (
+          <div className="mb-4 flex items-center">
+            {/* biome-ignore lint/performance/noImgElement: the report shell must not pull next/image into the PDF route's graph */}
+            <img
+              src={shared.org.logoUrl}
+              alt={shared.org.name}
+              className="h-8 w-auto"
+            />
+          </div>
+        ) : null}
+        <div className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border)] bg-white text-black shadow-[var(--shadow-lg)]">
+          <div className="p-6 md:p-8">
+            <ReportTemplate data={data} />
+          </div>
+        </div>
+        {shared.org.footerText ? (
+          <p className="mt-4 text-center text-xs text-[var(--text-tertiary)]">
+            {shared.org.footerText}
+          </p>
+        ) : null}
       </div>
     </main>
   );
