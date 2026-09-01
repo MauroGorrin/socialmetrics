@@ -24,6 +24,7 @@ next-env.d.ts.bak
 scrapling-env/
 the-architect/
 .netlify/
+_Contexto/
 
 !.env.example
 !.claude/
