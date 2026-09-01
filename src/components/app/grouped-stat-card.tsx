@@ -29,17 +29,19 @@ export function GroupedStatCard({ feature, parts }: { feature: Feature; parts: P
 
       <div className="w-px self-stretch bg-[var(--border)]" aria-hidden />
 
-      <div className="grid flex-1 basis-[215px] grid-cols-2 content-center gap-2.5">
+      <div className="grid flex-1 basis-[220px] grid-cols-2 content-center gap-2.5">
         {parts.map((p) => (
           <div
             key={p.label}
-            className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-1)] p-3"
+            className="flex min-w-0 flex-col gap-1 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-1)] p-3"
           >
-            <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{p.label}</span>
-            <div className="mt-1.5 flex items-baseline justify-between gap-1.5">
-              <span className="font-mono text-base font-bold text-[var(--fg)]">{p.value}</span>
-              {p.delta}
-            </div>
+            <span className="truncate text-[11px] font-semibold text-[var(--text-secondary)]">
+              {p.label}
+            </span>
+            <span className="truncate font-mono text-base font-bold leading-none text-[var(--fg)]">
+              {p.value}
+            </span>
+            <span className="mt-0.5">{p.delta}</span>
           </div>
         ))}
       </div>
