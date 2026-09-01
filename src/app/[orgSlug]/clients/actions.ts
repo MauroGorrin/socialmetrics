@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
+import { parseBulkClients } from '@/lib/bulk-clients';
 import { PLATFORMS, REPORT_PROFILES } from '@/lib/client-profile';
 import { ForbiddenError, requireRole, TenantError } from '@/server/auth/guards';
 import { db } from '@/server/db';
@@ -23,15 +24,19 @@ import { createClient, softDeleteClient, updateClient } from '@/server/mutations
 const createSchema = z.object({
   orgSlug: z.string().min(1),
   name: z.string().trim().min(1).max(120),
-  platform: z.enum(PLATFORMS),
   reportProfile: z.enum(REPORT_PROFILES),
+});
+
+const bulkSchema = z.object({
+  orgSlug: z.string().min(1),
+  raw: z.string().trim().min(1).max(8000),
 });
 
 const updateSchema = z.object({
   orgSlug: z.string().min(1),
   clientId: z.uuid(),
   name: z.string().trim().min(1).max(120),
-  platform: z.enum(PLATFORMS),
+  platform: z.enum(PLATFORMS).nullable(),
   platformAccountId: z.string().trim().max(120).optional(),
   reportProfile: z.enum(REPORT_PROFILES),
 });
@@ -41,7 +46,22 @@ const deleteSchema = z.object({
   clientId: z.uuid(),
 });
 
-export type CreateClientState = { ok?: boolean; error?: string };
+export type CreateClientState = {
+  ok?: boolean;
+  error?: string;
+  /** Set on success — the dialog uses it to jump straight to metric entry. */
+  clientId?: string;
+  /** Which submit button was pressed: `load` → go to metrics, `another` → reset. */
+  intent?: 'load' | 'another';
+};
+
+export type BulkCreateState = {
+  ok?: boolean;
+  error?: string;
+  created?: number;
+  /** Non-fatal notes from the parser (skipped dupes, malformed lines, the cap). */
+  notes?: string[];
+};
 
 function str(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -72,32 +92,72 @@ export async function createClientAction(
   const user = await getCurrentUser();
   if (!user) return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
 
+  const intent: 'load' | 'another' = str(formData, 'intent') === 'another' ? 'another' : 'load';
   const parsed = createSchema.safeParse({
     orgSlug: str(formData, 'orgSlug'),
     name: str(formData, 'name'),
-    platform: str(formData, 'platform'),
     reportProfile: str(formData, 'reportProfile') || 'ads',
   });
   if (!parsed.success) {
-    return { error: 'Ingresa un nombre y elige una plataforma.' };
+    return { error: 'Ingresa un nombre para el cliente.', intent };
   }
 
+  let clientId: string;
   try {
     const { org } = await requireRole(parsed.data.orgSlug, user.id, 'admin');
     const client = await createClient({
       orgId: org.id,
       createdBy: user.id,
       name: parsed.data.name,
-      platform: parsed.data.platform,
       reportProfile: parsed.data.reportProfile,
     });
     await recordAudit(org.id, user.id, 'client.create', client.id, { name: client.name });
+    clientId = client.id;
   } catch (error) {
-    return { error: messageForError(error) };
+    return { error: messageForError(error), intent };
   }
 
   revalidatePath(`/${parsed.data.orgSlug}/clients`);
-  return { ok: true };
+  return { ok: true, clientId, intent };
+}
+
+export async function createClientsBulkAction(
+  _prev: BulkCreateState,
+  formData: FormData,
+): Promise<BulkCreateState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
+
+  const parsed = bulkSchema.safeParse({
+    orgSlug: str(formData, 'orgSlug'),
+    raw: str(formData, 'raw'),
+  });
+  if (!parsed.success) {
+    return { error: 'Pegá al menos un cliente, uno por línea.' };
+  }
+
+  const { rows, errors } = parseBulkClients(parsed.data.raw);
+  if (rows.length === 0) {
+    return { error: 'Ninguna línea es válida.', notes: errors };
+  }
+
+  try {
+    const { org } = await requireRole(parsed.data.orgSlug, user.id, 'admin');
+    for (const row of rows) {
+      const client = await createClient({
+        orgId: org.id,
+        createdBy: user.id,
+        name: row.name,
+        reportProfile: row.reportProfile,
+      });
+      await recordAudit(org.id, user.id, 'client.create', client.id, { name: client.name });
+    }
+  } catch (error) {
+    return { error: messageForError(error), notes: errors };
+  }
+
+  revalidatePath(`/${parsed.data.orgSlug}/clients`);
+  return { ok: true, created: rows.length, notes: errors };
 }
 
 export async function updateClientAction(formData: FormData): Promise<void> {
@@ -108,7 +168,7 @@ export async function updateClientAction(formData: FormData): Promise<void> {
     orgSlug: str(formData, 'orgSlug'),
     clientId: str(formData, 'clientId'),
     name: str(formData, 'name'),
-    platform: str(formData, 'platform'),
+    platform: str(formData, 'platform') || null,
     platformAccountId: str(formData, 'platformAccountId').trim() || undefined,
     reportProfile: str(formData, 'reportProfile') || 'ads',
   });

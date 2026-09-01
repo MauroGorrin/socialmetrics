@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { PLATFORM_LABELS } from '@/lib/client-profile';
 
-type Client = { id: string; name: string; platform: string };
+type Client = { id: string; name: string; platform: string | null };
 
 const initial = (name: string) => name.trim()[0]?.toUpperCase() ?? '?';
 
@@ -49,7 +49,7 @@ export function ClientSwitcher({ clients, active }: { clients: Client[]; active:
 
   const label = current ? current.name : 'Todos los clientes';
   const sub = current
-    ? (PLATFORM_LABELS[current.platform] ?? current.platform)
+    ? (current.platform ? (PLATFORM_LABELS[current.platform] ?? current.platform) : 'Cliente')
     : `${clients.length} ${clients.length === 1 ? 'cliente' : 'clientes'}`;
 
   return (
@@ -124,9 +124,11 @@ export function ClientSwitcher({ clients, active }: { clients: Client[]; active:
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-[var(--fg)]">{c.name}</span>
-                  <span className="block truncate text-[11px] text-[var(--text-tertiary)]">
-                    {PLATFORM_LABELS[c.platform] ?? c.platform}
-                  </span>
+                  {c.platform ? (
+                    <span className="block truncate text-[11px] text-[var(--text-tertiary)]">
+                      {PLATFORM_LABELS[c.platform] ?? c.platform}
+                    </span>
+                  ) : null}
                 </span>
               </button>
             );

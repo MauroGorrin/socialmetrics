@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { createClientAction } from '@/app/[orgSlug]/clients/actions';
+import { createClientAction, createClientsBulkAction } from '@/app/[orgSlug]/clients/actions';
 import { AddClientDialog } from '@/components/app/add-client-dialog';
+import { BulkAddClients } from '@/components/app/bulk-add-clients';
 import { getCurrentUser } from '@/lib/auth';
 import { getAccessibleOrg } from '@/server/queries/orgs';
 import { listClients } from '@/server/queries/clients';
@@ -42,7 +43,10 @@ export default async function ClientsPage({
     <section className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-[var(--fg)]">Clientes</h1>
-        <AddClientDialog orgSlug={params.orgSlug} action={createClientAction} />
+        <div className="flex items-center gap-2">
+          <BulkAddClients orgSlug={params.orgSlug} action={createClientsBulkAction} />
+          <AddClientDialog orgSlug={params.orgSlug} action={createClientAction} />
+        </div>
       </div>
 
       {error ? (
@@ -65,7 +69,9 @@ export default async function ClientsPage({
               >
                 <span className="min-w-0 truncate font-medium text-[var(--fg)]">{client.name}</span>
                 <span className="shrink-0 text-sm text-[var(--fg-muted)]">
-                  {PLATFORM_LABELS[client.platform] ?? client.platform} ·{' '}
+                  {client.platform
+                    ? `${PLATFORM_LABELS[client.platform] ?? client.platform} · `
+                    : ''}
                   {dateFmt.format(client.createdAt)}
                 </span>
               </Link>

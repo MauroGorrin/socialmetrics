@@ -19,7 +19,6 @@ export type OnboardingState = {
   orgName?: string;
   clientId?: string;
   clientName?: string;
-  clientPlatform?: string;
   clientProfile?: ReportProfile;
   periodMonth?: string;
   metricsSeeded?: boolean;

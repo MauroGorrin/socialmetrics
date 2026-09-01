@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
-import { PLATFORMS, REPORT_PROFILES } from '@/lib/client-profile';
+import { REPORT_PROFILES } from '@/lib/client-profile';
 import {
   advanceOnboarding,
   clearOnboarding,
@@ -67,12 +67,10 @@ export async function submitClientAction(formData: FormData): Promise<void> {
   const parsed = z
     .object({
       name: z.string().trim().min(1).max(120),
-      platform: z.enum(PLATFORMS),
       profile: z.enum(REPORT_PROFILES),
     })
     .safeParse({
       name: str(formData, 'clientName'),
-      platform: str(formData, 'clientPlatform'),
       profile: str(formData, 'clientProfile') || 'ads',
     });
   if (!parsed.success) redirect('/onboarding/step-2?error=client');
@@ -84,7 +82,6 @@ export async function submitClientAction(formData: FormData): Promise<void> {
   if (clientId) {
     await updateClient(org.id, clientId, {
       name: parsed.data.name,
-      platform: parsed.data.platform,
       reportProfile: parsed.data.profile,
     });
   } else {
@@ -92,7 +89,6 @@ export async function submitClientAction(formData: FormData): Promise<void> {
       orgId: org.id,
       createdBy: user.id,
       name: parsed.data.name,
-      platform: parsed.data.platform,
       reportProfile: parsed.data.profile,
     });
     clientId = client.id;
@@ -102,7 +98,6 @@ export async function submitClientAction(formData: FormData): Promise<void> {
     step: Math.max(3, readOnboarding().step),
     clientId,
     clientName: parsed.data.name,
-    clientPlatform: parsed.data.platform,
     clientProfile: parsed.data.profile,
   });
   redirect('/onboarding/step-3');

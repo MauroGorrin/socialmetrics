@@ -95,17 +95,18 @@ test.describe('client CRUD', () => {
     await page.goto(`/${slug}/clients`);
     await expect(page.getByText(/Todav[ií]a no cargaste clientes/i)).toBeVisible();
 
-    // Create "Campaña Alfa".
+    // Create "Campaña Alfa" — "agregar otro" keeps the dialog open and resets it.
     await page.getByRole('button', { name: 'Agregar cliente' }).click();
     await page.getByRole('dialog').getByLabel('Nombre').fill('Campaña Alfa');
-    await page.getByRole('dialog').getByRole('button', { name: 'Crear' }).click();
-    await expect(page.getByRole('dialog')).toBeHidden();
+    await page.getByRole('dialog').getByRole('button', { name: 'Crear y agregar otro' }).click();
+    await expect(page.getByRole('dialog').getByText(/cliente creado/i)).toBeVisible();
     await expect(page.getByRole('link', { name: /Campaña Alfa/ })).toBeVisible();
 
     // Create "Campaña Beta" — must land at the top of the list.
-    await page.getByRole('button', { name: 'Agregar cliente' }).click();
     await page.getByRole('dialog').getByLabel('Nombre').fill('Campaña Beta');
-    await page.getByRole('dialog').getByRole('button', { name: 'Crear' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Crear y agregar otro' }).click();
+    await expect(page.getByRole('link', { name: /Campaña Beta/ })).toBeVisible();
+    await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
 
     const rows = page.locator('ul li');
@@ -146,5 +147,56 @@ test.describe('client CRUD', () => {
       .single();
     expect(deletedRow?.id).toBe(clientId);
     expect(deletedRow?.deleted_at).not.toBeNull();
+  });
+
+  test('"crear y cargar métricas" lands on the metric entry page for the new client', async ({
+    page,
+  }) => {
+    await page.goto('/auth/signin');
+    await page.fill('input[name="email"]', userEmail);
+    await page.fill('input[name="password"]', PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForURL(new RegExp(`/${slug}/dashboard$`), { timeout: 90_000 });
+
+    await page.goto(`/${slug}/clients`);
+    await page.getByRole('button', { name: 'Agregar cliente' }).click();
+    await page.getByRole('dialog').getByLabel('Nombre').fill('Cliente Directo');
+    await page.getByRole('dialog').getByRole('radio', { name: /Orgánico/ }).check();
+    await page.getByRole('dialog').getByRole('button', { name: 'Crear y cargar métricas' }).click();
+
+    await page.waitForURL(new RegExp(`/${slug}/metrics\\?client=[0-9a-f-]+&month=\\d{4}-\\d{2}$`));
+
+    const { data: created } = await admin
+      .from('client')
+      .select('name, platform, report_profile')
+      .eq('org_id', orgId)
+      .eq('name', 'Cliente Directo')
+      .single();
+    expect(created?.platform).toBeNull();
+    expect(created?.report_profile).toBe('organic');
+  });
+
+  test('bulk add creates several clients from one textarea', async ({ page }) => {
+    await page.goto('/auth/signin');
+    await page.fill('input[name="email"]', userEmail);
+    await page.fill('input[name="password"]', PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForURL(new RegExp(`/${slug}/dashboard$`), { timeout: 90_000 });
+
+    await page.goto(`/${slug}/clients`);
+    await page.getByRole('button', { name: 'Agregar varios' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('textbox')
+      .fill('Masivo Uno\nMasivo Dos, orgánico\nMasivo Uno');
+    await page.getByRole('dialog').getByRole('button', { name: 'Crear clientes' }).click();
+    await expect(page.getByRole('dialog').getByText(/2 clientes creados/i)).toBeVisible();
+
+    const { data: rows } = await admin
+      .from('client')
+      .select('name, report_profile')
+      .eq('org_id', orgId)
+      .like('name', 'Masivo %');
+    expect(rows).toHaveLength(2);
   });
 });

@@ -168,7 +168,7 @@ function splitAggregates(
 export type ReportClientKpis = {
   clientId: string;
   clientName: string;
-  clientPlatform: string;
+  clientPlatform: string | null;
   kpis: Kpis;
 };
 
@@ -228,7 +228,7 @@ export async function clientKpisForMonth(
 export type ClientMonthlySeries = {
   clientId: string;
   clientName: string;
-  clientPlatform: string;
+  clientPlatform: string | null;
   clientProfile: ReportProfile;
   byMonth: Record<string, Kpis>;
 };

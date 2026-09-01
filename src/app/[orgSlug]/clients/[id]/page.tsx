@@ -101,7 +101,7 @@ export default async function ClientDetailPage({
           <div>
             <h1 className="text-2xl font-bold text-[var(--fg)]">{client.name}</h1>
             <p className="text-sm text-[var(--text-secondary)]">
-              {PLATFORM_LABELS[client.platform] ?? client.platform} ·{' '}
+              {client.platform ? `${PLATFORM_LABELS[client.platform] ?? client.platform} · ` : ''}
               {PROFILE_LABELS[client.reportProfile as keyof typeof PROFILE_LABELS] ??
                 client.reportProfile}
             </p>
@@ -235,8 +235,9 @@ export default async function ClientDetailPage({
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
-            Plataforma
-            <select name="platform" defaultValue={client.platform} className={FIELD}>
+            Plataforma (opcional)
+            <select name="platform" defaultValue={client.platform ?? ''} className={FIELD}>
+              <option value="">— sin especificar —</option>
               {PLATFORM_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
