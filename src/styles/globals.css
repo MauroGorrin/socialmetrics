@@ -1,25 +1,97 @@
 @import "tailwindcss";
 
 /*
- * Semantic color tokens. Light values on :root; dark values applied either by
- * an explicit `data-theme="dark"` on <html> (set by the blocking theme script
- * before any client JS runs) or by the OS preference when the user has made no
- * explicit choice. `@theme inline` wires Tailwind utilities (bg-background,
- * text-fg, …) to these live variables so they follow the runtime swap with no
- * repaint or reflow — only the custom-property values change.
+ * BrightBean warm palette. Semantic token NAMES are unchanged (~180 files
+ * reference them); only their VALUES moved to the warm orange/stone system.
+ * The BrightBean-specific tokens (--neutral-*, --surface-N, --text-*,
+ * --shadow-*, --radius-*, --brand-*, status -50/-500/-700) are added alongside.
+ *
+ * Light values on :root. Dark values applied either by an explicit
+ * `data-theme="dark"` on <html> (set by the blocking theme script before any
+ * client JS runs) or by the OS preference when the user has made no explicit
+ * choice. `@theme inline` wires Tailwind utilities to the live variables so
+ * they follow the runtime swap with no repaint — only the values change.
  */
 
 :root {
-  --background: #ffffff;
-  --surface: #f8fafc;
-  --border: #e2e8f0;
-  --fg: #1e293b;
-  --fg-muted: #64748b;
-  --primary: #0f172a;
-  --primary-fg: #ffffff;
-  --destructive: #dc2626;
-  --success: #16a34a;
-  --warning: #ea580c;
+  /* ── Warm stone neutral ramp (fixed across themes) ──────────────────────── */
+  --neutral-50: #FAFAF9;
+  --neutral-100: #F5F5F4;
+  --neutral-200: #E7E5E4;
+  --neutral-300: #D6D3D1;
+  --neutral-400: #A8A29E;
+  --neutral-500: #78716C;
+  --neutral-600: #57534E;
+  --neutral-700: #44403C;
+  --neutral-800: #292524;
+  --neutral-900: #1C1917;
+  --neutral-950: #171412;
+
+  /* ── Brand ramp (orange, fixed across themes) ───────────────────────────── */
+  --brand-50: #FFF7ED;
+  --brand-100: #FFEDD5;
+  --brand-200: #FED7AA;
+  --brand-500: #F97316;
+  --brand-600: #EA580C;
+  --brand-700: #C2410C;
+
+  /* ── Status ramps (fixed across themes) ─────────────────────────────────── */
+  --success-50: #F0FDF4;
+  --success-500: #22C55E;
+  --success-700: #15803D;
+  --warning-50: #FEFCE8;
+  --warning-500: #EAB308;
+  --warning-700: #A16207;
+  --error-50: #FEF2F2;
+  --error-500: #EF4444;
+  --error-700: #B91C1C;
+  --info-50: #EFF6FF;
+  --info-500: #3B82F6;
+  --info-700: #1D4ED8;
+
+  /* ── Semantic tokens — LIGHT (names frozen, values warm) ────────────────── */
+  --background: #FAFAF9;
+  --surface: #FFFFFF;
+  --border: #E7E5E4;
+  --fg: #1C1917;
+  --fg-muted: #57534E;
+  --primary: #F97316;
+  --primary-fg: #FFFFFF;
+  --destructive: #EF4444;
+  --success: #22C55E;
+  --warning: #EAB308;
+
+  /* ── Semantic aliases (BrightBean) — LIGHT ──────────────────────────────── */
+  --surface-0: #FFFFFF;
+  --surface-1: #FAFAF9;
+  --surface-2: #F5F5F4;
+  --border-hover: #D6D3D1;
+  --text-primary: #1C1917;
+  --text-secondary: #57534E;
+  --text-tertiary: #78716C;
+  --text-ghost: #A8A29E;
+  --text-inverse: #FFFFFF;
+
+  /* ── Elevation (warm-black tinted, fixed) ───────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(23, 20, 18, 0.05);
+  --shadow-sm: 0 1px 3px rgba(23, 20, 18, 0.08), 0 1px 2px rgba(23, 20, 18, 0.04);
+  --shadow-md: 0 4px 6px rgba(23, 20, 18, 0.06), 0 2px 4px rgba(23, 20, 18, 0.04);
+  --shadow-lg: 0 10px 15px rgba(23, 20, 18, 0.08), 0 4px 6px rgba(23, 20, 18, 0.04);
+  --shadow-xl: 0 20px 25px rgba(23, 20, 18, 0.08), 0 8px 10px rgba(23, 20, 18, 0.04);
+
+  /* ── Radii ─────────────────────────────────────────────────────────────── */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-full: 9999px;
+
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+  --dur-slow: 350ms;
 
   /* Chart series — one saturated mid-tone per metric, legible on both themes. */
   --chart-impressions: #3b82f6;
@@ -44,41 +116,63 @@
   --chart-stories_published: #94a3b8;
 
   /* Distinct hues for comparing clients on one chart. */
-  --client-1: #3b82f6;
-  --client-2: #ec4899;
-  --client-3: #10b981;
-  --client-4: #f59e0b;
-  --client-5: #8b5cf6;
-  --client-6: #06b6d4;
-  --client-7: #ef4444;
-  --client-8: #84cc16;
+  --client-1: #f97316;
+  --client-2: #0ea5e9;
+  --client-3: #14b8a6;
+  --client-4: #6366f1;
+  --client-5: #ec4899;
+  --client-6: #eab308;
+  --client-7: #10b981;
+  --client-8: #f43f5e;
 }
 
+/* ── Semantic tokens — DARK (explicit choice) ─────────────────────────────── */
 :root[data-theme="dark"] {
-  --background: #0f172a;
-  --surface: #1e293b;
-  --border: #334155;
-  --fg: #f1f5f9;
-  --fg-muted: #94a3b8;
-  --primary: #e0e7ff;
-  --primary-fg: #000000;
-  --destructive: #ef4444;
-  --success: #22c55e;
-  --warning: #fb923c;
+  --background: #171412;
+  --surface: #1C1917;
+  --border: #44403C;
+  --fg: #FAFAF9;
+  --fg-muted: #D6D3D1;
+  --primary: #FB923C;
+  --primary-fg: #171412;
+  --destructive: #F87171;
+  --success: #4ADE80;
+  --warning: #FACC15;
+
+  --surface-0: #1C1917;
+  --surface-1: #292524;
+  --surface-2: #44403C;
+  --border-hover: #57534E;
+  --text-primary: #FAFAF9;
+  --text-secondary: #D6D3D1;
+  --text-tertiary: #A8A29E;
+  --text-ghost: #78716C;
+  --text-inverse: #171412;
 }
 
+/* ── Semantic tokens — DARK (OS preference, no explicit choice) ───────────── */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #0f172a;
-    --surface: #1e293b;
-    --border: #334155;
-    --fg: #f1f5f9;
-    --fg-muted: #94a3b8;
-    --primary: #e0e7ff;
-    --primary-fg: #000000;
-    --destructive: #ef4444;
-    --success: #22c55e;
-    --warning: #fb923c;
+    --background: #171412;
+    --surface: #1C1917;
+    --border: #44403C;
+    --fg: #FAFAF9;
+    --fg-muted: #D6D3D1;
+    --primary: #FB923C;
+    --primary-fg: #171412;
+    --destructive: #F87171;
+    --success: #4ADE80;
+    --warning: #FACC15;
+
+    --surface-0: #1C1917;
+    --surface-1: #292524;
+    --surface-2: #44403C;
+    --border-hover: #57534E;
+    --text-primary: #FAFAF9;
+    --text-secondary: #D6D3D1;
+    --text-tertiary: #A8A29E;
+    --text-ghost: #78716C;
+    --text-inverse: #171412;
   }
 }
 
@@ -95,7 +189,8 @@
   --color-warning: var(--warning);
   --font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, Menlo, monospace;
 }
 
 @layer base {
