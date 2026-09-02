@@ -1,0 +1,7 @@
+{
+  "data": [
+    { "id": "act_1112223334445", "name": "Acme Corp — Prospecting", "account_id": "1112223334445" },
+    { "id": "act_9998887776665", "name": "Acme Corp — Retargeting", "account_id": "9998887776665" }
+  ],
+  "paging": { "cursors": { "before": "MA", "after": "MQ" } }
+}
