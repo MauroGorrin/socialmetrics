@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
 import { parseBulkClients } from '@/lib/bulk-clients';
 import { PLATFORMS, REPORT_PROFILES } from '@/lib/client-profile';
+import { currentMonth, firstOfMonth, previousMonth, today } from '@/lib/metrics';
+import { rateLimit } from '@/lib/rate-limit';
 import { ForbiddenError, requireRole, TenantError } from '@/server/auth/guards';
 import { db } from '@/server/db';
 import { auditLogs } from '@/server/db/schema';
@@ -13,7 +15,7 @@ import { createClient, softDeleteClient, updateClient } from '@/server/mutations
 import { deleteManualBaseMetrics } from '@/server/mutations/metrics';
 import { finalize, remove as removeConnection } from '@/server/mutations/platform-connections';
 import { getById as getConnectionById } from '@/server/queries/platform-connections';
-import { backfillConnection } from '@/server/sync/ads-sync';
+import { backfillConnection, syncConnection } from '@/server/sync/ads-sync';
 
 /**
  * Client server actions. Each validates its input with zod, authorizes through
@@ -326,4 +328,44 @@ export async function disconnectPlatformAction(formData: FormData): Promise<void
     if (!(error instanceof ForbiddenError) && !(error instanceof TenantError)) throw error;
   }
   redirect(target);
+}
+
+export type SyncNowState = { ok?: boolean; error?: string; syncedRows?: number };
+
+const syncNowSchema = z.object({
+  orgSlug: z.string().min(1),
+  connectionId: z.uuid(),
+});
+
+/** Force a re-sync of one connection's current + previous month. Rate-limited to 1/min. */
+export async function syncNowAction(
+  _prev: SyncNowState,
+  formData: FormData,
+): Promise<SyncNowState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: 'Tu sesión expiró.' };
+
+  const parsed = syncNowSchema.safeParse({
+    orgSlug: str(formData, 'orgSlug'),
+    connectionId: str(formData, 'connectionId'),
+  });
+  if (!parsed.success) return { error: 'Datos inválidos.' };
+
+  if (!rateLimit(`sync:${parsed.data.connectionId}`, 1, 60_000).ok) {
+    return { error: 'Espera un minuto entre sincronizaciones.' };
+  }
+
+  try {
+    const { org } = await requireRole(parsed.data.orgSlug, user.id, 'admin');
+    const conn = await getConnectionById(org.id, parsed.data.connectionId);
+    if (!conn) return { error: 'Esa conexión ya no existe.' };
+    const from = firstOfMonth(previousMonth(currentMonth()));
+    const { syncedRows } = await syncConnection(conn, { from, to: today() });
+    revalidatePath(`/${parsed.data.orgSlug}/clients/${conn.clientId}`);
+    return { ok: true, syncedRows };
+  } catch (error) {
+    if (error instanceof ForbiddenError) return { error: 'No tienes permiso para sincronizar.' };
+    if (error instanceof TenantError) return { error: 'Organización no encontrada.' };
+    return { error: 'La sincronización falló. Revisa el estado de la conexión.' };
+  }
 }
