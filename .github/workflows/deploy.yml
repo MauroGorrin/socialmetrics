@@ -25,6 +25,16 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
+        # Schema-valid placeholders for `next build`'s page-data collection.
+        # The build connects to nothing; real values live in the Vercel project.
+        env:
+          SUPABASE_URL: https://placeholder.supabase.co
+          SUPABASE_ANON_KEY: placeholder
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          DATABASE_URL: postgres://user:pass@localhost:5432/placeholder
+          SESSION_JWT_SECRET: ci-build-only-placeholder-session-secret
+          RESEND_API_KEY: re_placeholder
+          RESEND_FROM_EMAIL: ci@example.com
 
   deploy:
     needs: gate
