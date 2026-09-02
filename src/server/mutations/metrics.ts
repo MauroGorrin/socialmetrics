@@ -1,7 +1,7 @@
 import 'server-only';
 
-import { and, eq, gte, lt } from 'drizzle-orm';
-import { firstOfMonth, type MetricKey, monthBounds } from '@/lib/metrics';
+import { and, eq, gte, inArray, lt, lte } from 'drizzle-orm';
+import { BASE_METRICS, firstOfMonth, type MetricKey, monthBounds } from '@/lib/metrics';
 import { db } from '@/server/db';
 import type { Metric } from '@/server/db/schema';
 import { metrics, reportPosts } from '@/server/db/schema';
@@ -59,6 +59,8 @@ export async function createMetric(input: NewMetric): Promise<Metric> {
   return row;
 }
 
+type MetricSource = 'manual' | 'meta' | 'google_ads';
+
 type MetricRow = {
   orgId: string;
   clientId: string;
@@ -67,6 +69,7 @@ type MetricRow = {
   metricName: MetricKey;
   metricValue: string;
   period: string;
+  source: MetricSource;
 };
 
 /** One month's values, shaped into insertable rows — shared by the single-month and bulk writers. */
@@ -76,6 +79,7 @@ function metricRowsFor(
   actorId: string,
   periodMonth: string,
   values: Partial<Record<MetricKey, number>>,
+  source: MetricSource = 'manual',
 ): MetricRow[] {
   const period = firstOfMonth(periodMonth);
   return (Object.entries(values) as Array<[MetricKey, number | undefined]>)
@@ -88,6 +92,7 @@ function metricRowsFor(
       metricName,
       metricValue: (value as number).toFixed(2),
       period,
+      source,
     }));
 }
 
@@ -115,6 +120,7 @@ export async function upsertMonthlyMetrics(input: {
         and(
           eq(metrics.orgId, input.orgId),
           eq(metrics.clientId, input.clientId),
+          eq(metrics.source, 'manual'),
           gte(metrics.period, from),
           lt(metrics.period, to),
         ),
@@ -146,6 +152,7 @@ export async function upsertMonthlyMetricsBulk(input: {
           and(
             eq(metrics.orgId, input.orgId),
             eq(metrics.clientId, input.clientId),
+            eq(metrics.source, 'manual'),
             gte(metrics.period, from),
             lt(metrics.period, to),
           ),
@@ -155,6 +162,87 @@ export async function upsertMonthlyMetricsBulk(input: {
       }
     }
   });
+}
+
+/** A single day's synced ad figures — only the five additive base metrics. */
+export type SyncedDailyRow = { date: string } & Partial<
+  Record<'impressions' | 'clicks' | 'spend' | 'conversions' | 'conversion_value', number>
+>;
+
+const SYNCED_METRIC_KEYS = [
+  'impressions',
+  'clicks',
+  'spend',
+  'conversions',
+  'conversion_value',
+] as const satisfies ReadonlyArray<MetricKey>;
+
+/**
+ * Replace an ad-platform's contribution to a client over `[from, to]` with a
+ * fresh set of daily rows. The delete is scoped by `source` so it never touches
+ * hand-entered (`source='manual'`) or the other platform's rows — and the
+ * rewrite is wholesale ("API pisa todo"). One transaction.
+ */
+export async function upsertSyncedMetrics(input: {
+  orgId: string;
+  clientId: string;
+  connectedBy: string;
+  source: 'meta' | 'google_ads';
+  /** Inclusive ISO date bounds, `YYYY-MM-DD`. */
+  from: string;
+  to: string;
+  rows: SyncedDailyRow[];
+}): Promise<void> {
+  const insertRows: MetricRow[] = input.rows.flatMap((row) =>
+    SYNCED_METRIC_KEYS.filter((key) => {
+      const value = row[key];
+      return value != null && Number.isFinite(value);
+    }).map((key) => ({
+      orgId: input.orgId,
+      clientId: input.clientId,
+      createdBy: input.connectedBy,
+      updatedBy: input.connectedBy,
+      metricName: key,
+      metricValue: (row[key] as number).toFixed(2),
+      period: row.date,
+      source: input.source,
+    })),
+  );
+
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(metrics)
+      .where(
+        and(
+          eq(metrics.orgId, input.orgId),
+          eq(metrics.clientId, input.clientId),
+          eq(metrics.source, input.source),
+          gte(metrics.period, input.from),
+          lte(metrics.period, input.to),
+        ),
+      );
+    if (insertRows.length > 0) {
+      await tx.insert(metrics).values(insertRows);
+    }
+  });
+}
+
+/**
+ * Drop a client's hand-entered rows for the five base ad metrics. Run once when
+ * a client connects an ad platform, so the sync's daily rows are the only source
+ * for those metrics and the read layer does not double-count.
+ */
+export async function deleteManualBaseMetrics(orgId: string, clientId: string): Promise<void> {
+  await db
+    .delete(metrics)
+    .where(
+      and(
+        eq(metrics.orgId, orgId),
+        eq(metrics.clientId, clientId),
+        eq(metrics.source, 'manual'),
+        inArray(metrics.metricName, [...BASE_METRICS]),
+      ),
+    );
 }
 
 export type MonthlyPostInput = {
