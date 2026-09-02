@@ -14,6 +14,18 @@ const envSchema = z.object({
   SESSION_URL: z.url().optional(),
   RESEND_API_KEY: z.string().min(1),
   RESEND_FROM_EMAIL: z.email(),
+
+  // Ad-platform sync (blueprints/ads-api-sync) — all optional. The feature is
+  // gated at runtime by `integrationsConfig()` in src/lib/integrations.ts, never
+  // by boot validation: the app runs exactly as before with none of these set.
+  TOKEN_ENCRYPTION_KEY: z.string().optional(),
+  CRON_SECRET: z.string().optional(),
+  META_APP_ID: z.string().optional(),
+  META_APP_SECRET: z.string().optional(),
+  GOOGLE_ADS_CLIENT_ID: z.string().optional(),
+  GOOGLE_ADS_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_ADS_DEVELOPER_TOKEN: z.string().optional(),
+  OAUTH_REDIRECT_BASE_URL: z.url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
