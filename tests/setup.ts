@@ -57,7 +57,7 @@ async function loadDbContext(): Promise<DbContext | null> {
 
 async function truncateAll({ db, sql }: DbContext): Promise<void> {
   await db.execute(
-    sql`TRUNCATE TABLE audit_log, report_comment, report, metric, client, membership, organization, "user" RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE TABLE platform_connection, audit_log, report_comment, report, metric, client, membership, organization, "user" RESTART IDENTITY CASCADE`,
   );
 }
 
