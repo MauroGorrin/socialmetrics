@@ -64,6 +64,20 @@
       "when": 1788290967889,
       "tag": "0008_gifted_snowbird",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788354726619,
+      "tag": "0009_watery_hex",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788354739586,
+      "tag": "0010_platform_connection_rls",
+      "breakpoints": true
     }
   ]
 }

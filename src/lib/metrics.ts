@@ -379,6 +379,19 @@ export function nextMonth(periodMonth: string): string {
   return date.toISOString().slice(0, 7);
 }
 
+/** `n` months before the current month, as `YYYY-MM`. `monthsAgo(0)` === `currentMonth()`. */
+export function monthsAgo(n: number): string {
+  const [year, month] = currentMonth().split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  date.setUTCMonth(date.getUTCMonth() - n);
+  return date.toISOString().slice(0, 7);
+}
+
+/** Today as `YYYY-MM-DD` (UTC). */
+export function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 /** The `count` months ending at `endMonth` inclusive, oldest first. */
 export function monthsEndingAt(endMonth: string, count: number): string[] {
   const [year, month] = endMonth.split('-').map(Number);

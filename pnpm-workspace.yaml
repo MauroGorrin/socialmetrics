@@ -5,4 +5,5 @@ onlyBuiltDependencies:
 
 allowBuilds:
   esbuild: true
+  protobufjs: false
   puppeteer: false

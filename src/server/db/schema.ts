@@ -133,6 +133,8 @@ export const metrics = pgTable(
     metricName: text('metric_name').notNull(),
     metricValue: numeric('metric_value', { precision: 14, scale: 2 }).notNull(),
     period: date('period').notNull(),
+    /** Where this row came from: hand entry, or an ad-platform sync. */
+    source: text('source').notNull().default('manual'),
     createdBy: uuid('created_by')
       .notNull()
       .references(() => users.id),
@@ -145,6 +147,50 @@ export const metrics = pgTable(
     check(
       'metric_metric_name_check',
       sql`${table.metricName} in ('impressions', 'clicks', 'spend', 'ctr', 'cpl', 'roas', 'conversions', 'conversion_value', 'followers_start', 'followers_end', 'reach', 'profile_visits', 'link_clicks', 'interactions', 'posts_published', 'stories_published', 'video_views')`,
+    ),
+    check('metric_source_check', sql`${table.source} in ('manual', 'meta', 'google_ads')`),
+  ],
+);
+
+// ── platform_connection ───────────────────────────────────────────────────────
+// One ad-platform OAuth grant, bound to a single client. Tokens are encrypted at
+// rest (src/lib/crypto.ts). RLS is enabled with NO policy — the encrypted tokens
+// are never exposed through PostgREST; only the server's direct connection reads
+// this table (see the custom RLS migration).
+export const platformConnections = pgTable(
+  'platform_connection',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    clientId: uuid('client_id')
+      .notNull()
+      .references(() => clients.id, { onDelete: 'cascade' }),
+    platform: text('platform').notNull(),
+    externalAccountId: text('external_account_id'),
+    externalAccountName: text('external_account_name'),
+    accessTokenEncrypted: text('access_token_encrypted'),
+    refreshTokenEncrypted: text('refresh_token_encrypted'),
+    tokenExpiresAt: timestamptz('token_expires_at'),
+    scope: text('scope'),
+    status: text('status').notNull().default('pending'),
+    lastError: text('last_error'),
+    lastSyncedAt: timestamptz('last_synced_at'),
+    connectedBy: uuid('connected_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('platform_connection_client_platform_unique').on(table.clientId, table.platform),
+    index('idx_platform_connection_org_id').on(table.orgId),
+    index('idx_platform_connection_status').on(table.status),
+    check('platform_connection_platform_check', sql`${table.platform} in ('meta', 'google_ads')`),
+    check(
+      'platform_connection_status_check',
+      sql`${table.status} in ('pending', 'connected', 'needs_reconnect', 'error', 'revoked')`,
     ),
   ],
 );
@@ -296,5 +342,6 @@ export type ReportPost = typeof reportPosts.$inferSelect;
 export type ReportComment = typeof reportComments.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type EmailEvent = typeof emailEvents.$inferSelect;
+export type PlatformConnection = typeof platformConnections.$inferSelect;
 
 export type Role = 'owner' | 'admin' | 'manager';

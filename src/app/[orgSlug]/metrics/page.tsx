@@ -13,6 +13,7 @@ import { currentMonth, keysForProfile, monthLabel, type ReportProfile } from '@/
 import { listClients } from '@/server/queries/clients';
 import { monthlyMetricValues, monthlyPosts } from '@/server/queries/metrics';
 import { getAccessibleOrg } from '@/server/queries/orgs';
+import { getForClient } from '@/server/queries/platform-connections';
 
 const NOTICES: Record<string, string> = {
   saved: 'Métricas del mes guardadas.',
@@ -55,6 +56,20 @@ export default async function MetricsEntryPage({
       ])
     : [{}, []];
   const activeProfile = (activeClient?.reportProfile as ReportProfile) ?? 'ads';
+
+  const connections = activeClient
+    ? await getForClient(access.org.id, activeClient.id)
+    : [];
+  const syncedConn = connections.find(
+    (c) => c.status === 'connected' || c.status === 'needs_reconnect',
+  );
+  const adSync = syncedConn
+    ? {
+        platform: syncedConn.platform as 'meta' | 'google_ads',
+        status: syncedConn.status,
+        lastSyncedAt: syncedConn.lastSyncedAt,
+      }
+    : null;
   const initialPosts: PostRow[] = posts.map((post) => ({
     url: post.url,
     format: post.format,
@@ -128,6 +143,7 @@ export default async function MetricsEntryPage({
               initial={initial}
               initialPosts={initialPosts}
               action={saveMonthlyMetricsAction}
+              adSync={adSync}
             />
           ) : null}
 

@@ -1,0 +1,33 @@
+{
+  "data": [
+    {
+      "date_start": "2026-08-01",
+      "date_stop": "2026-08-01",
+      "impressions": "12000",
+      "clicks": "340",
+      "spend": "85.50",
+      "actions": [
+        { "action_type": "link_click", "value": "340" },
+        { "action_type": "omni_purchase", "value": "3" }
+      ],
+      "action_values": [{ "action_type": "omni_purchase", "value": "420.00" }]
+    },
+    {
+      "date_start": "2026-08-02",
+      "date_stop": "2026-08-02",
+      "impressions": "13500",
+      "clicks": "402",
+      "spend": "92.10",
+      "actions": [{ "action_type": "omni_purchase", "value": "5" }],
+      "action_values": [{ "action_type": "omni_purchase", "value": "690.00" }]
+    },
+    {
+      "date_start": "2026-08-03",
+      "date_stop": "2026-08-03",
+      "impressions": "11200",
+      "clicks": "298",
+      "spend": "78.00"
+    }
+  ],
+  "paging": { "cursors": { "before": "MA", "after": "M0" } }
+}

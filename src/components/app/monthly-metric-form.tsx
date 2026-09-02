@@ -27,7 +27,23 @@ type Props = {
   initialPosts: PostRow[];
   /** `saveMonthlyMetricsAction`, passed in by the page. */
   action: (formData: FormData) => void | Promise<void>;
+  /** When set, the ad metrics come from a platform sync and the fields are read-only. */
+  adSync?: {
+    platform: 'meta' | 'google_ads';
+    status: string;
+    lastSyncedAt: Date | null;
+  } | null;
 };
+
+const SYNC_LABEL = { meta: 'Meta Ads', google_ads: 'Google Ads' } as const;
+
+function relativeSync(date: Date | null): string {
+  if (!date) return 'nunca';
+  const hrs = Math.round((Date.now() - date.getTime()) / 3_600_000);
+  if (hrs < 2) return 'hace un momento';
+  if (hrs < 36) return `hace ${hrs} h`;
+  return `hace ${Math.round(hrs / 24)} días`;
+}
 
 const FIELD =
   'w-full rounded border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-base text-[var(--fg)] outline-none focus:border-[var(--fg-muted)]';
@@ -55,7 +71,17 @@ function readValues(form: HTMLFormElement, keys: MetricKey[]): Values {
   return out;
 }
 
-function NumberField({ metricKey, initial }: { metricKey: MetricKey; initial?: number }) {
+function NumberField({
+  metricKey,
+  initial,
+  readOnly,
+  describedBy,
+}: {
+  metricKey: MetricKey;
+  initial?: number;
+  readOnly?: boolean;
+  describedBy?: string;
+}) {
   return (
     <label className="flex flex-col gap-1 text-sm text-[var(--fg)]">
       {METRIC_LABELS[metricKey]}
@@ -66,7 +92,10 @@ function NumberField({ metricKey, initial }: { metricKey: MetricKey; initial?: n
         step="0.01"
         inputMode="decimal"
         defaultValue={initial ?? ''}
-        className={FIELD}
+        readOnly={readOnly}
+        disabled={readOnly}
+        aria-describedby={readOnly ? describedBy : undefined}
+        className={readOnly ? `${FIELD} opacity-60` : FIELD}
       />
     </label>
   );
@@ -103,8 +132,10 @@ export function MonthlyMetricForm({
   initial,
   initialPosts,
   action,
+  adSync,
 }: Props) {
   const showAds = profile === 'ads' || profile === 'mixed';
+  const adsLocked = Boolean(adSync);
   const showOrganic = profile === 'organic' || profile === 'mixed';
   const orgKeys = organicKeys(profile);
 
@@ -156,9 +187,37 @@ export function MonthlyMetricForm({
               Pauta
             </h3>
           ) : null}
+          {adSync ? (
+            adSync.status === 'needs_reconnect' ? (
+              <p
+                id="ads-sync-note"
+                className="rounded-[var(--radius-md)] bg-[var(--warning-50)] p-2.5 text-sm text-[var(--warning-700)]"
+              >
+                La conexión con {SYNC_LABEL[adSync.platform]} expiró.{' '}
+                <a
+                  href={`/${orgSlug}/clients/${clientId}`}
+                  className="underline hover:opacity-80"
+                >
+                  Reconéctala
+                </a>{' '}
+                para seguir sincronizando.
+              </p>
+            ) : (
+              <p id="ads-sync-note" className="text-sm text-[var(--text-secondary)]">
+                Estas métricas se sincronizan desde {SYNC_LABEL[adSync.platform]}. Última
+                sincronización: {relativeSync(adSync.lastSyncedAt)}.
+              </p>
+            )
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             {ADS_KEYS.map((key) => (
-              <NumberField key={key} metricKey={key} initial={initial[key]} />
+              <NumberField
+                key={key}
+                metricKey={key}
+                initial={initial[key]}
+                readOnly={adsLocked}
+                describedBy="ads-sync-note"
+              />
             ))}
           </div>
           <PreviewRow keys={ADS_PREVIEW} kpis={adsKpis} />

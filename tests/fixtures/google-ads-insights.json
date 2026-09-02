@@ -1,0 +1,32 @@
+[
+  {
+    "metrics": {
+      "impressions": "9800",
+      "clicks": "210",
+      "cost_micros": "12500000",
+      "conversions": 4,
+      "conversions_value": 512.4
+    },
+    "segments": { "date": "2026-08-01" }
+  },
+  {
+    "metrics": {
+      "impressions": "10400",
+      "clicks": "260",
+      "cost_micros": "14100000",
+      "conversions": 6,
+      "conversions_value": 730.0
+    },
+    "segments": { "date": "2026-08-02" }
+  },
+  {
+    "metrics": {
+      "impressions": "8700",
+      "clicks": "185",
+      "cost_micros": "9900000",
+      "conversions": 2,
+      "conversions_value": 240.0
+    },
+    "segments": { "date": "2026-08-03" }
+  }
+]

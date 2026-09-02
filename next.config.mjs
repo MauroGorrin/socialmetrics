@@ -16,6 +16,10 @@ const nextConfig = {
       'puppeteer',
       'puppeteer-core',
       '@sparticuz/chromium-min',
+      // Google Ads client: native-ish deps (google-gax / protobufjs) with dynamic
+      // requires — load from node_modules, never bundle. Server-only, see
+      // src/server/providers/google-ads.ts.
+      'google-ads-api',
     ],
   },
   async headers() {

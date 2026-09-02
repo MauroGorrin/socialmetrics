@@ -4,8 +4,10 @@ import { deleteClientAction, updateClientAction } from '@/app/[orgSlug]/clients/
 import { ExportCsvButton } from '@/components/app/export-csv-button';
 import { MetricDelta } from '@/components/app/metric-delta';
 import { MetricToggleChart } from '@/components/app/metric-toggle-chart';
+import { PlatformConnectionCard } from '@/components/app/platform-connection-card';
 import { StatCard } from '@/components/app/stat-card';
 import { getCurrentUser } from '@/lib/auth';
+import { integrationsConfig } from '@/lib/integrations';
 import {
   PLATFORM_LABELS,
   PLATFORM_OPTIONS,
@@ -26,6 +28,7 @@ import {
 } from '@/lib/metrics';
 import { getClient } from '@/server/queries/clients';
 import { getAccessibleOrg } from '@/server/queries/orgs';
+import { getForClient } from '@/server/queries/platform-connections';
 import { organicKpisByMonth, orgKpisByMonth } from '@/server/queries/reports';
 
 const FIELD =
@@ -58,6 +61,16 @@ export default async function ClientDetailPage({
 
   const client = await getClient(access.org.id, params.id);
   if (!client) notFound();
+
+  const integrations = integrationsConfig();
+  const showIntegrations =
+    (client.reportProfile === 'ads' || client.reportProfile === 'mixed') &&
+    Boolean(integrations.meta || integrations.googleAds);
+  const connections = showIntegrations
+    ? await getForClient(access.org.id, client.id)
+    : [];
+  const connectionFor = (platform: 'meta' | 'google_ads') =>
+    connections.find((c) => c.platform === platform && c.status !== 'revoked') ?? null;
 
   const profile: 'ads' | 'organic' =
     (client.reportProfile as ReportProfile) === 'organic' ? 'organic' : 'ads';
@@ -274,6 +287,32 @@ export default async function ClientDetailPage({
           </button>
         </form>
       </div>
+
+      {showIntegrations ? (
+        <div className="space-y-4 border-t border-[var(--border)] pt-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            Integraciones
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {integrations.meta ? (
+              <PlatformConnectionCard
+                platform="meta"
+                orgSlug={params.orgSlug}
+                clientId={client.id}
+                connection={connectionFor('meta')}
+              />
+            ) : null}
+            {integrations.googleAds ? (
+              <PlatformConnectionCard
+                platform="google_ads"
+                orgSlug={params.orgSlug}
+                clientId={client.id}
+                connection={connectionFor('google_ads')}
+              />
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
