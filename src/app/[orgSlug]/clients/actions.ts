@@ -10,6 +10,10 @@ import { ForbiddenError, requireRole, TenantError } from '@/server/auth/guards';
 import { db } from '@/server/db';
 import { auditLogs } from '@/server/db/schema';
 import { createClient, softDeleteClient, updateClient } from '@/server/mutations/clients';
+import { deleteManualBaseMetrics } from '@/server/mutations/metrics';
+import { finalize, remove as removeConnection } from '@/server/mutations/platform-connections';
+import { getById as getConnectionById } from '@/server/queries/platform-connections';
+import { backfillConnection } from '@/server/sync/ads-sync';
 
 /**
  * Client server actions. Each validates its input with zod, authorizes through
@@ -231,6 +235,95 @@ export async function deleteClientAction(formData: FormData): Promise<void> {
     } else {
       target = '/dashboard';
     }
+  }
+  redirect(target);
+}
+
+// ── ad-platform integrations ────────────────────────────────────────────────
+
+const selectAccountSchema = z.object({
+  orgSlug: z.string().min(1),
+  connectionId: z.uuid(),
+  /** Encoded `externalAccountId|externalAccountName` from the picker radio. */
+  account: z.string().min(1).max(400),
+});
+
+/**
+ * Finalize a `pending` connection with the chosen ad account, drop the client's
+ * hand-entered ad rows, and kick off the 12-month backfill (best-effort — a
+ * failure is recorded on the connection and the cron retries). Redirects.
+ */
+export async function selectAdAccountAction(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) redirect('/auth/signin');
+
+  const parsed = selectAccountSchema.safeParse({
+    orgSlug: str(formData, 'orgSlug'),
+    connectionId: str(formData, 'connectionId'),
+    account: str(formData, 'account'),
+  });
+  if (!parsed.success) redirect('/dashboard');
+
+  const sep = parsed.data.account.indexOf('|');
+  const externalAccountId = sep === -1 ? parsed.data.account : parsed.data.account.slice(0, sep);
+  const externalAccountName = sep === -1 ? externalAccountId : parsed.data.account.slice(sep + 1);
+
+  let target = `/${parsed.data.orgSlug}/clients?error=integration`;
+  try {
+    const { org } = await requireRole(parsed.data.orgSlug, user.id, 'admin');
+    const conn = await getConnectionById(org.id, parsed.data.connectionId);
+    if (conn && conn.status === 'pending') {
+      const finalized = await finalize(org.id, conn.id, { externalAccountId, externalAccountName });
+      if (finalized) {
+        await deleteManualBaseMetrics(org.id, conn.clientId);
+        await backfillConnection(finalized).catch(() => {});
+        await recordAudit(org.id, user.id, 'integration.connect', conn.id, {
+          platform: conn.platform,
+        });
+        target = `/${parsed.data.orgSlug}/clients/${conn.clientId}?connected=1`;
+      }
+    }
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      target = `/${parsed.data.orgSlug}/clients?error=forbidden`;
+    } else if (error instanceof TenantError) {
+      target = '/dashboard';
+    } else {
+      throw error;
+    }
+  }
+  redirect(target);
+}
+
+const disconnectSchema = z.object({
+  orgSlug: z.string().min(1),
+  connectionId: z.uuid(),
+});
+
+/** Disconnect a platform: `status='revoked'`, tokens nulled. Synced rows are kept. Redirects. */
+export async function disconnectPlatformAction(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) redirect('/auth/signin');
+
+  const parsed = disconnectSchema.safeParse({
+    orgSlug: str(formData, 'orgSlug'),
+    connectionId: str(formData, 'connectionId'),
+  });
+  if (!parsed.success) redirect('/dashboard');
+
+  let target = `/${parsed.data.orgSlug}/clients`;
+  try {
+    const { org } = await requireRole(parsed.data.orgSlug, user.id, 'admin');
+    const conn = await getConnectionById(org.id, parsed.data.connectionId);
+    if (conn) {
+      await removeConnection(org.id, conn.id);
+      await recordAudit(org.id, user.id, 'integration.disconnect', conn.id, {
+        platform: conn.platform,
+      });
+      target = `/${parsed.data.orgSlug}/clients/${conn.clientId}`;
+    }
+  } catch (error) {
+    if (!(error instanceof ForbiddenError) && !(error instanceof TenantError)) throw error;
   }
   redirect(target);
 }
