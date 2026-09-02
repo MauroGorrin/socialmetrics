@@ -112,6 +112,7 @@ Deferred conventions — read before editing that area:
 | `.claude/rules/database.md` | `src/server/db/**`, `drizzle/` |
 | `.claude/rules/api.md` | `src/app/[orgSlug]/**/actions.ts`, route handlers |
 | `.claude/rules/components.md` | `src/components/**` |
+| `.claude/rules/integrations.md` | `src/server/providers/**`, `src/server/sync/**`, `src/app/api/integrations/**`, `src/app/api/cron/**`, `src/lib/crypto.ts`, `src/lib/integrations.ts` |
 
 ## Non-negotiable
 
@@ -122,3 +123,24 @@ Deferred conventions — read before editing that area:
 5. **Test tenancy isolation.** E2E tests must verify org A cannot see org B data across list, detail, update, delete.
 6. **Database migrations are committed.** Never `.gitignore` the `drizzle/` folder. Migrations are version control.
 7. **PDFs must render without flashing.** Puppeteer + React template; no external CSS loading or network calls in the PDF template.
+
+## Ad-platform sync (blueprint: `blueprints/ads-api-sync/`)
+
+Clients with an `ads` or `mixed` profile can connect one Meta Ads and/or one Google Ads
+account (`platform_connection` table, one row per client+platform). Connecting backfills 12
+months of daily insights into `metric` with `source` = `meta` | `google_ads`; a daily Vercel
+Cron (`/api/cron/sync-ads`, bearer `CRON_SECRET`) re-syncs the current + previous month. For a
+connected client the metrics grid's ad fields are read-only — the sync owns them and overwrites
+the month wholesale ("API pisa todo"). Manual entry (`source='manual'`) still owns organic
+metrics and every non-connected client.
+
+- Tokens are AES-256-GCM encrypted (`src/lib/crypto.ts`), decrypted only in
+  `src/server/sync/ads-sync.ts` and `src/server/providers/**`. Never return or log a token.
+- The feature is dark unless `integrationsConfig()` (`src/lib/integrations.ts`) finds its env
+  vars. All ad-integration env vars are OPTIONAL in `src/lib/env.ts` — the app boots without them.
+- Provider modules (`src/server/providers/{meta,google-ads}.ts`) normalize each API to
+  `DailyInsightRow` (the 5 `BASE_METRICS`). `getProvider(platform)` is the factory.
+- `metric.source` scopes deletes: `upsertMonthlyMetrics` only clears `source='manual'`;
+  `upsertSyncedMetrics` only clears `source=<platform>`. Never widen either.
+
+Extra commands: `pnpm db:generate --custom --name <slug>` (empty migration), `pnpm add google-ads-api`.

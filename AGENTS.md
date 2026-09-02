@@ -25,3 +25,10 @@ SaaS platform for agencies to generate branded monthly client reports from socia
 7. PDFs render without network calls or flashing.
 
 Full architecture, boundaries, and design tokens: see `CLAUDE.md` in this directory.
+
+## Ad-platform sync
+
+Meta Ads + Google Ads metrics sync into the `metric` table tagged by `source`. See the
+"Ad-platform sync" section of CLAUDE.md. Rules: tokens are encrypted and never logged/returned;
+all integration env vars are optional (feature gated by `integrationsConfig()`); deletes are
+always scoped by `metric.source`. Design doc: `blueprints/ads-api-sync/blueprint.md`.
