@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { db } from '@/server/db';
 import type { PlatformConnection } from '@/server/db/schema';
 import { platformConnections } from '@/server/db/schema';
@@ -52,4 +52,33 @@ export async function listConnected(): Promise<PlatformConnection[]> {
     .select()
     .from(platformConnections)
     .where(eq(platformConnections.status, 'connected'));
+}
+
+/**
+ * The newest still-usable OAuth grant for an org + platform — a `connected` or
+ * `pending` connection with a stored access token that (for Meta) has not
+ * expired. Used by the connect route to let one agency login cover every client:
+ * the first client does the full OAuth, later clients reuse this grant and jump
+ * straight to the ad-account picker.
+ */
+export async function getReusableGrant(
+  orgId: string,
+  platform: 'meta' | 'google_ads',
+): Promise<PlatformConnection | null> {
+  const rows = await db
+    .select()
+    .from(platformConnections)
+    .where(
+      and(
+        eq(platformConnections.orgId, orgId),
+        eq(platformConnections.platform, platform),
+        isNotNull(platformConnections.accessTokenEncrypted),
+        inArray(platformConnections.status, ['connected', 'pending']),
+      ),
+    )
+    .orderBy(desc(platformConnections.updatedAt));
+  const now = Date.now();
+  return (
+    rows.find((r) => !r.tokenExpiresAt || r.tokenExpiresAt.getTime() > now) ?? null
+  );
 }

@@ -167,6 +167,9 @@ export default function HomePage() {
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-8 text-sm text-[var(--fg-muted)] sm:flex-row sm:justify-between">
           <span>© {new Date().getFullYear()} Reportes App</span>
           <span className="flex gap-4">
+            <Link href="/privacy" className="hover:text-[var(--fg)]">
+              Privacidad
+            </Link>
             <Link href="/auth/signin" className="hover:text-[var(--fg)]">
               Iniciar sesión
             </Link>

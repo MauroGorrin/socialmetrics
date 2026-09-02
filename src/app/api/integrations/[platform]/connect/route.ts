@@ -6,13 +6,19 @@ import { integrationsConfig, redirectUri } from '@/lib/integrations';
 import { signState } from '@/server/auth/oauth-state';
 import { db } from '@/server/db';
 import { clients, memberships, organizations } from '@/server/db/schema';
+import { createDraft, decryptTokens } from '@/server/mutations/platform-connections';
+import { getReusableGrant } from '@/server/queries/platform-connections';
 
 /**
  * GET /api/integrations/[platform]/connect?clientId=<uuid>
  *
- * Starts the OAuth flow for one client. Admin-only. Sets a signed, httpOnly
- * `oauth_state` cookie and 302s to the provider's consent screen. Creates no
- * DB row — the connection is stored only on callback.
+ * Starts the OAuth flow for one client. Admin-only.
+ *
+ * The agency authorizes its own platform account once per org+platform. The
+ * first client runs the full OAuth: sets a signed, httpOnly `oauth_state`
+ * cookie and 302s to the provider's consent screen (the connection row is
+ * written on callback). Every later client reuses that stored grant — no
+ * provider round-trip — and 302s straight to the ad-account picker.
  */
 
 const platformSchema = z.enum(['meta', 'google_ads']);
@@ -91,6 +97,31 @@ export async function GET(
       { error: access.error === 403 ? 'Forbidden' : 'Not found' },
       { status: access.error },
     );
+  }
+
+  const pickerUrl = new URL(
+    `/${access.orgSlug}/clients/${clientId.data}/integrations/${platform.data}`,
+    request.nextUrl.origin,
+  );
+
+  // Reuse the agency's existing grant for this org+platform, if any: skip the
+  // provider consent screen entirely and drop the admin straight on the picker.
+  const grant = await getReusableGrant(access.orgId, platform.data);
+  if (grant) {
+    const tokens = decryptTokens(grant);
+    if (tokens.accessToken) {
+      await createDraft({
+        orgId: access.orgId,
+        clientId: clientId.data,
+        platform: platform.data,
+        connectedBy: user.id,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        tokenExpiresAt: grant.tokenExpiresAt,
+        scope: grant.scope,
+      });
+      return NextResponse.redirect(pickerUrl);
+    }
   }
 
   const state = signState({ clientId: clientId.data, platform: platform.data });

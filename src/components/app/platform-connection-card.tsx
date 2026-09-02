@@ -42,7 +42,10 @@ export function PlatformConnectionCard({ platform, orgSlug, clientId, connection
       <div className={CARD}>
         <h3 className="font-semibold text-[var(--fg)]">{label}</h3>
         <p className="text-sm text-[var(--text-secondary)]">
-          Conecta la cuenta de {label} de este cliente para traer las métricas automáticamente.
+          Conecta tu cuenta de agencia de {label} (con acceso a las cuentas publicitarias de tus
+          clientes) para traer las métricas automáticamente. La primera vez te pedirá iniciar sesión
+          en {platform === 'meta' ? 'Facebook' : 'Google'}; después eliges la cuenta de cada cliente
+          al instante.
         </p>
         <a href={connectHref} className={PRIMARY}>
           Conectar {label}

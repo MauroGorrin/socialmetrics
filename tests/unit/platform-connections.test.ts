@@ -9,8 +9,12 @@ vi.mock('@/lib/crypto', () => ({
   decryptToken: (s: string) => s.replace(/^enc\(/, '').replace(/\)$/, ''),
 }));
 
-const cap: { wheres: unknown[]; sets: Record<string, unknown>[]; values: Record<string, unknown>[] } =
-  { wheres: [], sets: [], values: [] };
+const cap: {
+  wheres: unknown[];
+  sets: Record<string, unknown>[];
+  values: Record<string, unknown>[];
+  rows: unknown[];
+} = { wheres: [], sets: [], values: [], rows: [] };
 
 vi.mock('@/server/db', () => {
   const select = () => {
@@ -20,8 +24,8 @@ vi.mock('@/server/db', () => {
       cap.wheres.push(w);
       return o;
     };
-    o.orderBy = () => Promise.resolve([]);
-    o.limit = () => Promise.resolve([]);
+    o.orderBy = () => Promise.resolve(cap.rows);
+    o.limit = () => Promise.resolve(cap.rows);
     o.then = (res: (v: unknown) => unknown) => Promise.resolve([]).then(res);
     return o;
   };
@@ -59,6 +63,7 @@ beforeEach(() => {
   cap.wheres.length = 0;
   cap.sets.length = 0;
   cap.values.length = 0;
+  cap.rows.length = 0;
 });
 
 describe('platform_connection queries', () => {
@@ -70,6 +75,36 @@ describe('platform_connection queries', () => {
     expect(lastWhereSql()).toContain('"org_id"');
     await q.getById('org-1', 'conn-1');
     expect(lastWhereSql()).toContain('"org_id"');
+  });
+
+  it('getReusableGrant is scoped by org + platform and requires a stored token', async () => {
+    const q = await import('@/server/queries/platform-connections');
+    await q.getReusableGrant('org-1', 'meta');
+    const sql = lastWhereSql();
+    expect(sql).toContain('"org_id"');
+    expect(sql).toContain('"platform"');
+    expect(sql).toContain('"status"');
+    expect(sql).toContain('"access_token_encrypted"');
+    expect(sql.toLowerCase()).toContain('is not null');
+  });
+
+  it('getReusableGrant skips a grant whose token has already expired', async () => {
+    const q = await import('@/server/queries/platform-connections');
+    cap.rows.push({
+      id: 'expired',
+      tokenExpiresAt: new Date(Date.now() - 60_000),
+      accessTokenEncrypted: 'enc(x)',
+    });
+    expect(await q.getReusableGrant('org-1', 'meta')).toBeNull();
+  });
+
+  it('getReusableGrant returns the first still-valid grant', async () => {
+    const q = await import('@/server/queries/platform-connections');
+    cap.rows.push(
+      { id: 'expired', tokenExpiresAt: new Date(Date.now() - 60_000), accessTokenEncrypted: 'e' },
+      { id: 'ok', tokenExpiresAt: null, accessTokenEncrypted: 'e' },
+    );
+    expect((await q.getReusableGrant('org-1', 'meta'))?.id).toBe('ok');
   });
 
   it('listConnected filters only by status and has no org_id predicate', async () => {
