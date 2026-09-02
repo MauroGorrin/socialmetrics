@@ -35,7 +35,8 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith('/api/webhooks/') ||
     pathname.startsWith('/api/cron/') ||
     pathname === '/api/deploy' ||
-    pathname === '/pricing'
+    pathname === '/pricing' ||
+    pathname === '/privacy'
   );
 }
 

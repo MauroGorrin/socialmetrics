@@ -63,7 +63,8 @@ export default async function AdAccountPickerPage({
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-[var(--fg)]">Elige la cuenta de {label}</h1>
         <p className="text-sm text-[var(--text-secondary)]">
-          Vamos a sincronizar las métricas de la cuenta que elijas.
+          Estas son las cuentas publicitarias a las que tu cuenta de agencia tiene acceso.
+          Sincronizaremos las métricas de la que elijas para este cliente.
         </p>
       </div>
 

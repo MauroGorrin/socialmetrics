@@ -166,4 +166,39 @@ test.describe('ads integration — connect + backfill + grid lock', () => {
     await page.goto(`/${slug}/clients/${clientId}`);
     await expect(page.getByRole('button', { name: 'Desconectar' })).toBeVisible();
   });
+
+  test('a second client reuses the agency grant — straight to the picker, no OAuth', async ({
+    page,
+  }) => {
+    await page.goto('/auth/signin');
+    await page.fill('input[name="email"]', email);
+    await page.fill('input[name="password"]', PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForURL(new RegExp(`/${slug}/dashboard$`), { timeout: 90_000 });
+
+    const { data: client2 } = await admin
+      .from('client')
+      .insert({ org_id: orgId, name: 'Cliente Ads 2', report_profile: 'ads', created_by: userId })
+      .select('id')
+      .single();
+    const client2Id = client2?.id ?? '';
+
+    // The connect endpoint should not bounce to Facebook — the org already has a
+    // grant from the first client (finalized to `connected` in the test above).
+    await page.goto(`/api/integrations/meta/connect?clientId=${client2Id}`);
+    await page.waitForURL(
+      new RegExp(`/${slug}/clients/${client2Id}/integrations/meta$`),
+      { timeout: 30_000 },
+    );
+    expect(page.url()).not.toContain('facebook.com');
+
+    const { data: conn2 } = await admin
+      .from('platform_connection')
+      .select('status, access_token_encrypted')
+      .eq('client_id', client2Id)
+      .eq('platform', 'meta')
+      .single();
+    expect(conn2?.status).toBe('pending');
+    expect(conn2?.access_token_encrypted).toBeTruthy();
+  });
 });
